@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { memo } from 'react';
 
@@ -68,12 +68,10 @@ const Arrow = memo(({ start, end, color, animate }: {
   color: string;
   animate: boolean;
 }) => {
-  const pathRef = useRef<SVGPathElement>(null);
   const d = useMemo(() => `M ${start.x} ${start.y} L ${end.x} ${end.y}`, [start.x, start.y, end.x, end.y]);
 
   return (
     <motion.path
-      ref={pathRef}
       d={d}
       stroke={color}
       strokeWidth="2"
@@ -349,7 +347,7 @@ ExplanationPanel.displayName = 'ExplanationPanel';
 export const RaceConditionVisualizer = () => {
   const [sharedState, setSharedState] = useState(0);
   const [goroutines, setGoroutines] = useState<Goroutine[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
+  const [isRunning] = useState(false);
   const [history, setHistory] = useState<{ value: number; description: string }[]>([]);
   const [currentStep, setCurrentStep] = useState<Step | null>(null);
   const [activeConnections, setActiveConnections] = useState<{

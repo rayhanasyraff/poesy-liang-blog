@@ -146,18 +146,6 @@ export const TaskSimulator = ({ tasks = 'sequential' }: { tasks: TaskMode }) => 
     resetTasks();
   }, [mode, resetTasks]);
 
-  const getStatusColor = useCallback((status: Task['status']) => {
-    switch (status) {
-      case 'waiting':
-        return 'bg-neutral-200 dark:bg-neutral-700';
-      case 'running':
-        return 'bg-blue-400 dark:bg-blue-500';
-      case 'completed':
-        return 'bg-emerald-400 dark:bg-emerald-500';
-      default:
-        return 'bg-neutral-200 dark:bg-neutral-700';
-    }
-  }, []);
 
   const explanation = useMemo(() => {
     if (mode === 'sequential') {

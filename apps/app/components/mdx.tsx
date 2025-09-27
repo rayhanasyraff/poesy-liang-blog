@@ -17,7 +17,7 @@ import {
 import { CodePlayground } from "./interactive-components/code-playground";
 
 function Table({ data }) {
-  let headers = data.headers.map((header, index) => (
+  const headers = data.headers.map((header, index) => (
     <th
       key={index}
       className="border-b border-neutral-200 dark:border-neutral-800
@@ -30,7 +30,7 @@ function Table({ data }) {
     </th>
   ));
 
-  let rows = data.rows.map((row, index) => (
+  const rows = data.rows.map((row, index) => (
     <tr
       key={index}
       className="group transition-colors hover:bg-muted/50 dark:hover:bg-muted/50 text-start tracking-wide"
@@ -61,7 +61,7 @@ function Table({ data }) {
 }
 
 function CustomLink(props) {
-  let href = props.href;
+  const href = props.href;
 
   if (href.startsWith("/")) {
     return (
@@ -190,7 +190,7 @@ function Code({ children, ...props }) {
     return <code {...props}>{children}</code>;
   }
 
-  let codeHTML = highlight(children);
+  const codeHTML = highlight(children);
   const isLongCode = children.split("\n").length > 15;
 
   const codeBlock = (
@@ -223,13 +223,13 @@ function slugify(str) {
     .trim() // Remove whitespace from both ends of a string
     .replace(/\s+/g, "-") // Replace spaces with -
     .replace(/&/g, "-and-") // Replace & with 'and'
-    .replace(/[^\w\-]+/g, "") // Remove all non-word characters except for -
-    .replace(/\-\-+/g, "-"); // Replace multiple - with single -
+    .replace(/[^\w-]+/g, "") // Remove all non-word characters except for -
+    .replace(/--+/g, "-"); // Replace multiple - with single -
 }
 
 function createHeading(level) {
   const Component = ({ children }) => {
-    let slug = slugify(children);
+    const slug = slugify(children);
     return React.createElement(
       `h${level}`,
       { id: slug },

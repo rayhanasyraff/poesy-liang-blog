@@ -1,6 +1,4 @@
-import { ISVGProps } from "@/types";
-
-export default function IconArrowRightUp({ size = 24, ...props }: ISVGProps) {
+export default function IconArrowRightUp() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
