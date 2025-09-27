@@ -1,5 +1,4 @@
 import Container from "@/components/shared/container";
-import Social from "@/components/social";
 import Script from "next/script";
 
 const structuredData = {

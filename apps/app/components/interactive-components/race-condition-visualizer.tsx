@@ -414,7 +414,7 @@ export const RaceConditionVisualizer = () => {
           description: "Initial value read by Goroutine 1"
         }]);
         break;
-      case 3:
+      case 3: {
         // First goroutine writes
         const expectedAfterIncrement = sharedState + 1;
         setCurrentStep({
@@ -437,6 +437,7 @@ export const RaceConditionVisualizer = () => {
           }
         ]);
         break;
+      }
       case 4:
         // Second goroutine writes
         setCurrentStep({

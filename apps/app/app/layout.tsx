@@ -16,25 +16,30 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL || "https://onurhan.dev"
   ),
   title: {
-    default: "Onurhan Demir - Software Developer",
-    template: "%s | Onurhan Demir",
+    default: "POESY 小詩",
+    template: "%s | POESY 小詩",
   },
   description:
-    "Onurhan Demir - Software Developer at Insider, focused on building comprehensive applications and micro products.",
+    "POESY 小詩 - Artist",
+  icons: {
+    icon: "/poesy-logo-pink.png",
+    shortcut: "/poesy-logo-pink.png",
+    apple: "/poesy-logo-pink.png",
+  },
   openGraph: {
-    title: "Onurhan Demir - Software Developer",
+    title: "POESY 小詩 - Artist",
     description:
-      "Software Developer at Insider, focused on building comprehensive applications and micro products.",
+      "Artist",
     url: "https://onurhan.dev",
-    siteName: "Onurhan Demir",
+    siteName: "POESY 小詩",
     locale: "en_US",
     type: "website",
     images: [
       {
-        url: "https://onurhan.dev/logo.svg",
+        url: "/poesy-logo-pink.png",
         width: 1200,
         height: 630,
-        alt: "Onurhan Demir",
+        alt: "POESY 小詩",
       },
     ],
   },
@@ -50,7 +55,7 @@ export const metadata: Metadata = {
     },
   },
   twitter: {
-    title: "Onurhan Demir",
+    title: "POESY 小詩",
     card: "summary_large_image",
     site: "@onurhan1337",
     creator: "@onurhan1337",
@@ -69,6 +74,10 @@ export default function RootLayout({
   return (
     <Providers>
       <html lang="en" suppressHydrationWarning>
+        <head>
+          <link rel="icon" type="image/png" href="/poesy-logo-pink.png" />
+          <link rel="shortcut icon" type="image/png" href="/poesy-logo-pink.png" />
+        </head>
         <body
           className={`${inter.className} bg-background text-foreground overflow-y-scroll`}
         >

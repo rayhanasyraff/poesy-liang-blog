@@ -22,14 +22,14 @@ export async function generateMetadata({
     return;
   }
 
-  let {
+  const {
     title,
     publishedAt: publishedTime,
     summary: description,
     keywords,
   } = blog.metadata;
 
-  let ogImage =
+  const ogImage =
     new URL(
       "/opengraph-image",
       process.env.NEXT_PUBLIC_APP_URL || "https://onurhan.dev"

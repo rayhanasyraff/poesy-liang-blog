@@ -10,7 +10,7 @@ import Separator from "./shared/separator";
 
 async function fetchServerPage(
   limit: number,
-  offset: number = 0,
+  offset = 0,
   blogs: Blog[]
 ): Promise<{ rows: typeof blogs; nextOffset: number | undefined }> {
   const start = offset * limit;
@@ -29,7 +29,6 @@ export default function InfiniteScrollBlogList({ blogs }: { blogs: Blog[] }) {
     status,
     data,
     error,
-    isFetching,
     isFetchingNextPage,
     fetchNextPage,
     hasNextPage,

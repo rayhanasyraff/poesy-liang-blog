@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 interface CodeStep {
   code: string;
   explanation: string;
-  state?: { [key: string]: any };
+  state?: { [key: string]: unknown };
   title?: string;
 }
 
@@ -25,7 +25,6 @@ interface CodePlaygroundProps {
 
 export const CodePlayground = ({
   steps,
-  language = "go",
 }: CodePlaygroundProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
