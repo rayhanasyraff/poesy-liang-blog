@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import { highlight } from "sugar-high";
+import TurndownService from "turndown";
 import { CopyCode } from "./copy-code";
 import { ExpandableCode } from "./expandable-code";
 import {
@@ -294,5 +295,24 @@ const components = {
 };
 
 export function CustomMDX({ source }: { source: string }) {
-  return <MDXRemote source={source} components={components} />;
+  // Detect if content is legacy HTML (has HTML-specific attributes)
+  const isLegacyHTML = source.trim().startsWith('<') && (source.includes('class=') || source.includes('style='));
+
+  let processedSource = source;
+
+  if (isLegacyHTML) {
+    // Convert HTML to Markdown using Turndown
+    const turndownService = new TurndownService({
+      headingStyle: 'atx',
+      codeBlockStyle: 'fenced',
+      emDelimiter: '*',
+      strongDelimiter: '**',
+    });
+
+    // Convert HTML to Markdown
+    processedSource = turndownService.turndown(source);
+  }
+
+  // Render as MDX/Markdown content
+  return <MDXRemote source={processedSource} components={components} />;
 }

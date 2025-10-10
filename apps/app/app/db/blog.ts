@@ -73,6 +73,9 @@ function getMDXData(dir) {
       slug,
       content,
       readingTime,
+      like_count: 0,
+      comment_count: 0,
+      tags: '',
     };
   });
 }

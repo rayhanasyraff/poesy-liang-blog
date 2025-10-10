@@ -3,28 +3,98 @@
 import React from 'react';
 import { useEffect, useRef } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { AnimatePresence, motion } from "framer-motion";
-import type { Blog } from "@/types/blog";
+import type { Blog, ApiBlog } from "@/types/blog";
 import { BlogCard } from './blog-card';
 import Separator from "./shared/separator";
+import { convertApiBlogToBlog } from '@/lib/blog-utils';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+// Fetch ALL blogs once and cache them
+let allBlogsCache: Blog[] | null = null;
+
+async function fetchAllBlogs(): Promise<Blog[]> {
+  if (allBlogsCache) {
+    return allBlogsCache;
+  }
+
+  try {
+    const allBlogs: Blog[] = [];
+    let offset = 0;
+    const limit = 50;
+    let hasMore = true;
+
+    // Keep fetching until we get all blogs
+    while (hasMore) {
+      const response = await fetch(`${API_BASE_URL}/blogs?limit=${limit}&offset=${offset}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch blogs: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error('API returned unsuccessful response');
+      }
+
+      const apiBlogs: ApiBlog[] = Array.isArray(data.data) ? data.data : [data.data];
+
+      if (apiBlogs.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      // Filter and convert
+      const publishedApiBlogs = apiBlogs.filter(blog =>
+        (blog.blog_status === 'publish' || blog.blog_status === 'draft') &&
+        blog.blog_content.trim() !== '' &&
+        blog.blog_title.trim() !== '' &&
+        blog.blog_title !== 'Auto Draft'
+      );
+
+      const blogs = publishedApiBlogs.map(convertApiBlogToBlog);
+      allBlogs.push(...blogs);
+
+      // If we got fewer blogs than requested, we've reached the end
+      if (apiBlogs.length < limit) {
+        hasMore = false;
+      } else {
+        offset += limit;
+      }
+    }
+
+    allBlogsCache = allBlogs;
+    return allBlogs;
+  } catch (error) {
+    console.error('Error fetching blogs from API:', error);
+    return [];
+  }
+}
 
 async function fetchServerPage(
   limit: number,
-  offset = 0,
-  blogs: Blog[]
-): Promise<{ rows: typeof blogs; nextOffset: number | undefined }> {
-  const start = offset * limit;
+  offset: number
+): Promise<{ rows: Blog[]; nextOffset: number | undefined }> {
+  const allBlogs = await fetchAllBlogs();
+
+  // Add artificial delay to show loading state
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  const start = offset;
   const end = start + limit;
-  const rows = blogs.slice(start, end);
-
-  await new Promise((r) => setTimeout(r, 500));
-
-  const nextOffset = end < blogs.length ? offset + 1 : undefined;
+  const rows = allBlogs.slice(start, end);
+  const nextOffset = end < allBlogs.length ? end : undefined;
 
   return { rows, nextOffset };
 }
 
-export default function InfiniteScrollBlogList({ blogs }: { blogs: Blog[] }) {
+export default function InfiniteScrollBlogList() {
   const {
     status,
     data,
@@ -33,39 +103,16 @@ export default function InfiniteScrollBlogList({ blogs }: { blogs: Blog[] }) {
     fetchNextPage,
     hasNextPage,
   } = useInfiniteQuery({
-    queryKey: ['projects'],
-    queryFn: (ctx) => fetchServerPage(5, ctx.pageParam, blogs),
+    queryKey: ['blog-posts'],
+    queryFn: (ctx) => fetchServerPage(5, ctx.pageParam),
     getNextPageParam: (lastGroup) => lastGroup.nextOffset,
     initialPageParam: 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const allRows = data ? data.pages.flatMap((d) => d.rows) : [];
   const loadMoreRef = useRef<HTMLDivElement>(null);
-
-  // Animation variants
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05,
-      },
-    },
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 5 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        type: "spring" as const,
-        stiffness: 150,
-        damping: 10,
-        duration: 0.5,
-      },
-    },
-  };
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -77,8 +124,8 @@ export default function InfiniteScrollBlogList({ blogs }: { blogs: Blog[] }) {
           fetchNextPage();
         }
       },
-      { 
-        threshold: 1.0,
+      {
+        threshold: 0.1,
         rootMargin: '100px' // Load more when 100px away from the element
       }
     );
@@ -97,9 +144,9 @@ export default function InfiniteScrollBlogList({ blogs }: { blogs: Blog[] }) {
 
   if (status === 'pending') {
     return (
-        <div className="flex items-center justify-center space-x-2">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
-        </div>
+      <div className="flex justify-center items-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+      </div>
     )
   }
 
@@ -109,48 +156,44 @@ export default function InfiniteScrollBlogList({ blogs }: { blogs: Blog[] }) {
 
   return (
     <div className="w-full">
-      {/* Blog list with animations */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
-        >
-          {allRows.map((blog, index, array) => (
-            <motion.div 
-              key={blog.slug} 
-              variants={item}
-            >
-              <BlogCard blog={blog} />
-              {index !== array.length - 1 && <Separator />}
-            </motion.div>
-          ))}
-        </motion.div>
-      </AnimatePresence>
-      
+      {/* Blog list */}
+      <div className="space-y-0">
+        {allRows.map((blog, index, array) => (
+          <div
+            key={blog.apiData ? `api-${blog.apiData.id}` : blog.slug}
+            className="animate-fade-in"
+            style={{
+              animationDelay: `${(index % 5) * 100}ms`,
+              animationFillMode: 'backwards'
+            }}
+          >
+            <BlogCard blog={blog} />
+            {index !== array.length - 1 && <Separator />}
+          </div>
+        ))}
+      </div>
+
       {/* Load more trigger */}
       {hasNextPage && (
-        <div 
+        <div
           ref={loadMoreRef}
           className="p-8 text-center"
         >
-          {isFetchingNextPage ? (
-            <div className="flex items-center justify-center space-x-2">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+          {isFetchingNextPage && (
+            <div className="flex justify-center items-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
             </div>
-          ) : (
-            <></>
           )}
         </div>
       )}
-      
+
       {/* End of content */}
       {!hasNextPage && allRows.length > 0 && (
         <div className="p-8 text-center text-gray-500">
           That's all! No more blogs to load.
         </div>
       )}
-      
+
       {/* Background updating indicator */}
       {/* {isFetching && !isFetchingNextPage && (
         <div className="fixed top-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-md text-sm">

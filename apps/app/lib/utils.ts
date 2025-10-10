@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: string) {
+export function formatDate(date: string, includeTime = false) {
   unstable_noStore();
   const currentDate = new Date();
   if (!date.includes("T")) {
@@ -30,11 +30,18 @@ export function formatDate(date: string) {
     formattedDate = "Today";
   }
 
-  const fullDate = targetDate.toLocaleString("en-us", {
+  const dateOptions: Intl.DateTimeFormatOptions = {
     month: "long",
     day: "numeric",
     year: "numeric",
-  });
+  };
+
+  if (includeTime) {
+    dateOptions.hour = "2-digit";
+    dateOptions.minute = "2-digit";
+  }
+
+  const fullDate = targetDate.toLocaleString("en-us", dateOptions);
 
   return `${fullDate} (${formattedDate})`;
 }
