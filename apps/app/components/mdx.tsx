@@ -295,24 +295,187 @@ const components = {
 };
 
 export function CustomMDX({ source }: { source: string }) {
-  // Detect if content is legacy HTML (has HTML-specific attributes)
-  const isLegacyHTML = source.trim().startsWith('<') && (source.includes('class=') || source.includes('style='));
+  // Detect if content is legacy HTML (has HTML-specific attributes or any HTML tags)
+  const isLegacyHTML = source.trim().startsWith('<') || /<[a-zA-Z][^>]*>/g.test(source);
 
   let processedSource = source;
 
   if (isLegacyHTML) {
+    // Pre-process HTML to fix malformed tags
+    let cleanedHTML = source;
+
+    // Strategy: Remove ALL emphasis/formatting tags to avoid malformed HTML issues
+    // Turndown will handle the conversion with its custom rule
+    cleanedHTML = cleanedHTML
+      // Remove ALL emphasis tags (both opening and closing, matched or not)
+      .replace(/<\/?i\b[^>]*>/gi, '')
+      .replace(/<\/?em\b[^>]*>/gi, '')
+      .replace(/<\/?b\b[^>]*>/gi, '')
+      .replace(/<\/?strong\b[^>]*>/gi, '')
+      // Also remove span tags which can cause issues
+      .replace(/<\/?span\b[^>]*>/gi, '')
+      // Convert <br> to newlines
+      .replace(/<br\s*\/?>/gi, '\n');
+
     // Convert HTML to Markdown using Turndown
     const turndownService = new TurndownService({
       headingStyle: 'atx',
       codeBlockStyle: 'fenced',
       emDelimiter: '*',
       strongDelimiter: '**',
+      br: '\n',
     });
 
-    // Convert HTML to Markdown
-    processedSource = turndownService.turndown(source);
+    // Add rule to strip out problematic emphasis tags that Turndown can't handle
+    turndownService.addRule('removeProblematicEmphasis', {
+      filter: ['i', 'em', 'b', 'strong'],
+      replacement: function(content) {
+        // Just return the content without the tags
+        return content;
+      }
+    });
+
+    // Custom rule for tables - convert to proper GFM tables
+    turndownService.addRule('table', {
+      filter: 'table',
+      replacement: function (content, node) {
+        const rows: string[] = [];
+        const tableNode = node as HTMLTableElement;
+
+        // Process all rows
+        const allRows = Array.from(tableNode.querySelectorAll('tr'));
+
+        allRows.forEach((row, rowIndex) => {
+          const cells = Array.from(row.querySelectorAll('th, td'));
+          const cellContents = cells.map(cell => {
+            const text = cell.textContent?.trim() || '';
+            // Escape pipe characters in cell content
+            return text.replace(/\|/g, '\\|').replace(/\n/g, ' ');
+          });
+
+          if (cellContents.length > 0) {
+            rows.push('| ' + cellContents.join(' | ') + ' |');
+
+            // Add separator row after header
+            if (rowIndex === 0 || row.querySelector('th')) {
+              const separator = cells.map(() => '---');
+              rows.push('| ' + separator.join(' | ') + ' |');
+            }
+          }
+        });
+
+        return '\n\n' + rows.join('\n') + '\n\n';
+      }
+    });
+
+    try {
+      // Convert HTML to Markdown using cleaned HTML
+      processedSource = turndownService.turndown(cleanedHTML);
+
+      // Clean up common MDX issues
+      processedSource = processedSource
+        // Ensure blank lines around code blocks
+        .replace(/(```[\s\S]*?```)/g, '\n\n$1\n\n')
+        // Ensure blank lines around tables
+        .replace(/(\n\|[^\n]*\|(?:\n\|[^\n]*\|)*)/g, '\n$1\n')
+        // Fix multiple blank lines
+        .replace(/\n{3,}/g, '\n\n')
+        // Trim whitespace
+        .trim();
+    } catch (error) {
+      console.error('Error converting HTML to Markdown:', error);
+      // Fall back to original source
+      processedSource = source;
+    }
   }
 
-  // Render as MDX/Markdown content
-  return <MDXRemote source={processedSource} components={components} />;
+  // Final cleanup: Fix any problematic MDX syntax
+  processedSource = processedSource
+    .split('\n')
+    .map((line, index, lines) => {
+      const trimmedLine = line.trim();
+
+      // Preserve code blocks
+      if (trimmedLine.startsWith('```')) {
+        return line;
+      }
+
+      // If line is a table row, keep it but ensure proper formatting
+      if (trimmedLine.startsWith('|')) {
+        // Ensure table row has proper structure
+        if (!trimmedLine.endsWith('|')) {
+          return line + ' |';
+        }
+        return line;
+      }
+
+      // For non-table rows, escape problematic characters
+      let processedLine = line;
+
+      // Escape pipe characters (not in tables)
+      processedLine = processedLine.replace(/\|/g, '&#124;');
+
+      // Escape curly braces that aren't valid JSX expressions
+      // Only escape if it looks like incorrect JSX syntax
+      processedLine = processedLine.replace(/\{(?![a-zA-Z_$])/g, '&#123;');
+      processedLine = processedLine.replace(/(?<![a-zA-Z0-9_$])\}/g, '&#125;');
+
+      // Escape angle brackets that aren't part of HTML tags
+      // Keep <Component> but escape < when followed by space or special chars
+      processedLine = processedLine.replace(/<(?!\/?[a-zA-Z][a-zA-Z0-9]*[\s>])/g, '&lt;');
+      processedLine = processedLine.replace(/(?<!<[a-zA-Z0-9\s="'\-\/]*)>(?![^<]*<\/[a-zA-Z])/g, '&gt;');
+
+      return processedLine;
+    })
+    .join('\n');
+
+  // Additional safety: remove any remaining MDX expressions that might be malformed
+  // MDX expressions are {expression} - if they're not valid JS, escape them
+  processedSource = processedSource.replace(/\{[^}]*\}/g, (match) => {
+    // If it looks like a valid JSX expression, keep it
+    if (match.match(/^\{[a-zA-Z_$][a-zA-Z0-9_$]*(\.[a-zA-Z_$][a-zA-Z0-9_$]*)*\}$/)) {
+      return match;
+    }
+    // Otherwise, escape the braces
+    return match.replace(/{/g, '&#123;').replace(/}/g, '&#125;');
+  });
+
+  // Wrap in try-catch to handle MDX compilation errors gracefully
+  try {
+    return <MDXRemote source={processedSource} components={components} />;
+  } catch (error) {
+    console.error('MDX compilation error:', error);
+    // Log the problematic source for debugging
+    console.error('Problematic source (first 1000 chars):', processedSource?.substring(0, 1000));
+
+    // Try to find the problematic line
+    const errorMessage = String(error);
+    const lineMatch = errorMessage.match(/line (\d+)/i);
+    if (lineMatch) {
+      const lineNum = parseInt(lineMatch[1]);
+      const lines = processedSource.split('\n');
+      console.error(`Problematic line ${lineNum}:`, lines[lineNum - 1]);
+    }
+
+    return (
+      <div className="prose dark:prose-invert max-w-none">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200 font-semibold">Error rendering content</p>
+          <p className="text-red-600 dark:text-red-400 text-sm mt-2">
+            This content could not be displayed due to a formatting error.
+          </p>
+          {process.env.NODE_ENV === 'development' && (
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm text-red-600 dark:text-red-400">
+                Show error details
+              </summary>
+              <pre className="mt-2 text-xs overflow-auto">
+                {String(error)}
+              </pre>
+            </details>
+          )}
+        </div>
+      </div>
+    );
+  }
 }

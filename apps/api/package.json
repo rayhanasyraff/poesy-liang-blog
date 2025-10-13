@@ -1,5 +1,7 @@
 {
   "name": "@poesy-liang-blog/api",
+  "version": "1.0.0",
+  "private": true,
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
@@ -7,15 +9,5 @@
     "build": "bun build src/index.ts --outdir=dist --target=bun",
     "start": "bun src/index.ts",
     "test": "bun test"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "@types/express": "^5.0.3",
-    "express": "^5.1.0"
   }
 }
