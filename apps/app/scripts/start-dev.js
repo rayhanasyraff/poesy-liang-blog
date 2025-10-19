@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 
-const { spawn } = require('child_process');
-const net = require('net');
-const fs = require('fs');
-const path = require('path');
+import { spawn } from 'child_process';
+import net from 'net';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const DEFAULT_PORT = 3000;
 const FALLBACK_PORTS = [3000, 3010, 3020, 3030];

@@ -1,5 +1,4 @@
 import type { Blog, ApiBlog } from '@/types/blog';
-import { getBlogPosts } from '@/app/db/blog';
 import { convertApiBlogToBlog } from './blog-utils';
 import { fetchBlogs, fetchBlogById } from '@/api/api';
 
@@ -63,19 +62,16 @@ export async function fetchBlogFromApiById(id: number) {
   }
 }
 
-// Function to combine MDX blogs and API blogs
+// Function to fetch all blogs from API
 export async function fetchBlogsCompatible(): Promise<Blog[]> {
   try {
-    // Fetch MDX blogs (local content)
-    const mdxBlogs = getBlogPosts();
-
-    // Try to fetch API blogs with limited data, but gracefully handle failures
+    // Fetch API blogs
     let apiBlogs: ApiBlog[] = [];
     try {
-      // Limit to 5 most recent blogs initially
-      apiBlogs = await fetchBlogsFromApi(5);
+      apiBlogs = await fetchBlogsFromApi(50);
     } catch (apiError) {
-      console.warn('API blogs failed to load, continuing with MDX only:', apiError);
+      console.warn('API blogs failed to load:', apiError);
+      return [];
     }
 
     // Filter for published blog posts only (include drafts for testing)
@@ -89,21 +85,17 @@ export async function fetchBlogsCompatible(): Promise<Blog[]> {
     // Convert API blogs to compatible format
     const convertedApiBlogs = publishedApiBlogs.map(convertApiBlogToBlog);
 
-    // Combine both sources
-    const allBlogs = [...mdxBlogs, ...convertedApiBlogs];
-
     // Sort by publishedAt date (newest first)
-    allBlogs.sort((a, b) => {
+    convertedApiBlogs.sort((a, b) => {
       const dateA = new Date(a.metadata.publishedAt).getTime();
       const dateB = new Date(b.metadata.publishedAt).getTime();
       return dateB - dateA;
     });
 
-    return allBlogs;
+    return convertedApiBlogs;
   } catch (error) {
-    console.error('Error fetching combined blogs:', error);
-    // Fallback to just MDX blogs if API fails
-    return getBlogPosts();
+    console.error('Error fetching blogs:', error);
+    return [];
   }
 }
 

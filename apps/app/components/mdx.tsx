@@ -423,7 +423,7 @@ export function CustomMDX({ source }: { source: string }) {
       // Escape angle brackets that aren't part of HTML tags
       // Keep <Component> but escape < when followed by space or special chars
       processedLine = processedLine.replace(/<(?!\/?[a-zA-Z][a-zA-Z0-9]*[\s>])/g, '&lt;');
-      processedLine = processedLine.replace(/(?<!<[a-zA-Z0-9\s="'\-\/]*)>(?![^<]*<\/[a-zA-Z])/g, '&gt;');
+      processedLine = processedLine.replace(/(?<!<[a-zA-Z0-9\s="'\-/]*)>(?![^<]*<\/[a-zA-Z])/g, '&gt;');
 
       return processedLine;
     })
