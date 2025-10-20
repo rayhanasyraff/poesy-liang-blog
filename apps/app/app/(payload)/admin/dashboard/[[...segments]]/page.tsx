@@ -1,5 +1,4 @@
-/* THIS FILE WAS GENERATED AUTOMATICALLY BY PAYLOAD. */
-/* DO NOT MODIFY IT BECAUSE IT COULD BE REWRITTEN AT ANY TIME. */
+/* Payload CMS Dashboard at /admin/settings/dashboard */
 import type { Metadata } from 'next'
 
 import config from '@payload-config'

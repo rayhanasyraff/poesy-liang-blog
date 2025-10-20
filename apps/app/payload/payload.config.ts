@@ -13,6 +13,7 @@ import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
+import { SiteSettings } from './globals/SiteSettings/config'
 import { plugins } from './plugins'
 import { defaultLexical } from './fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
@@ -22,6 +23,9 @@ const dirname = path.dirname(filename)
 
 export default buildConfig({
   admin: {
+    routes: {
+      admin: '/admin/dashboard',
+    },
     components: {
       // The `BeforeLogin` component renders a message that you see while logging into your admin panel.
       // Feel free to delete this at any time. Simply remove the line below.
@@ -57,6 +61,7 @@ export default buildConfig({
       ],
     },
   },
+  serverURL: getServerSideURL(),
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
   db: mongooseAdapter({
@@ -64,7 +69,7 @@ export default buildConfig({
   }),
   collections: [Pages, Posts, Media, Categories, Users],
   cors: [getServerSideURL()].filter(Boolean),
-  globals: [Header, Footer],
+  globals: [Header, Footer, SiteSettings],
   plugins: [
     ...plugins,
     // storage-adapter-placeholder

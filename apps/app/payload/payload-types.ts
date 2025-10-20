@@ -103,10 +103,12 @@ export interface Config {
   globals: {
     header: Header;
     footer: Footer;
+    siteSettings: SiteSetting;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
+    siteSettings: SiteSettingsSelect<false> | SiteSettingsSelect<true>;
   };
   locale: null;
   user: User & {
@@ -1606,6 +1608,35 @@ export interface Footer {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "siteSettings".
+ */
+export interface SiteSetting {
+  id: string;
+  siteTitle: string;
+  siteTagline?: string | null;
+  siteDescription?: string | null;
+  socialLinks?:
+    | {
+        platform: 'twitter' | 'instagram' | 'github' | 'linkedin' | 'facebook' | 'youtube';
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  theme?: {
+    /**
+     * Primary color for the theme (hex code)
+     */
+    primaryColor?: string | null;
+    /**
+     * Accent color for the theme (hex code)
+     */
+    accentColor?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "header_select".
  */
 export interface HeaderSelect<T extends boolean = true> {
@@ -1645,6 +1676,31 @@ export interface FooterSelect<T extends boolean = true> {
               label?: T;
             };
         id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "siteSettings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  siteTitle?: T;
+  siteTagline?: T;
+  siteDescription?: T;
+  socialLinks?:
+    | T
+    | {
+        platform?: T;
+        url?: T;
+        id?: T;
+      };
+  theme?:
+    | T
+    | {
+        primaryColor?: T;
+        accentColor?: T;
       };
   updatedAt?: T;
   createdAt?: T;
