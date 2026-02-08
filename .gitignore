@@ -50,6 +50,3 @@ out
 test-output
 .claude
 .env
-
-# Bun Dependencies
-bun.lock
