@@ -168,9 +168,10 @@ export const CodePlayground = ({
           <div
             className="mb-4 relative h-1 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden"
             role="progressbar"
+            aria-label="Code playground progress"
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={((currentStep + 1) / steps.length) * 100}
+            aria-valuenow={Math.round(((currentStep + 1) / steps.length) * 100)}
           >
             <motion.div
               className="absolute left-0 top-0 h-full bg-blue-500 dark:bg-blue-400"

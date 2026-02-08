@@ -62,8 +62,8 @@ const GoroutineGlow = memo(({ color }: { color: string }) => (
 ));
 GoroutineGlow.displayName = 'GoroutineGlow';
 
-const Arrow = memo(({ start, end, color, animate }: { 
-  start: { x: number; y: number }; 
+const Arrow = memo(({ start, end, color, animate }: {
+  start: { x: number; y: number };
   end: { x: number; y: number };
   color: string;
   animate: boolean;
@@ -79,7 +79,7 @@ const Arrow = memo(({ start, end, color, animate }: {
       initial={animate ? { pathLength: 0, opacity: 0 } : { pathLength: 1, opacity: 1 }}
       animate={{ pathLength: 1, opacity: 1 }}
       exit={{ opacity: 0, pathLength: 0 }}
-      transition={{ 
+      transition={{
         pathLength: { duration: 0.5, ease: "easeInOut" },
         opacity: { duration: 0.3, ease: "easeInOut" }
       }}
@@ -124,7 +124,7 @@ const StepDescription = memo(({ step }: { step: Step | null }) => {
     >
       <p className="text-sm text-blue-700 dark:text-blue-400 font-medium">{step.description}</p>
       {step.expectedValue !== undefined && (
-        <motion.div 
+        <motion.div
           variants={fadeIn}
           initial="hidden"
           animate="visible"
@@ -223,14 +223,14 @@ const GoroutineCard = memo(({ goroutine, index }: { goroutine: Goroutine; index:
 GoroutineCard.displayName = 'GoroutineCard';
 
 // Update SimulationControls to include prev/next buttons
-const SimulationControls = memo(({ 
-  isRunning, 
+const SimulationControls = memo(({
+  isRunning,
   onSimulate,
   onPrev,
   onNext,
   canGoPrev,
-  canGoNext 
-}: { 
+  canGoNext
+}: {
   isRunning: boolean;
   onSimulate: () => void;
   onPrev: () => void;
@@ -297,8 +297,8 @@ const ConnectionLine = memo(({ active, type }: { active: boolean; type: 'read' |
     initial={{ opacity: 0 }}
     animate={{ opacity: active ? 1 : 0.2 }}
     className={`absolute left-1/2 -translate-x-1/2 h-16 w-0.5 ${
-      type === 'read' 
-        ? 'bg-amber-400 dark:bg-amber-500' 
+      type === 'read'
+        ? 'bg-amber-400 dark:bg-amber-500'
         : 'bg-emerald-400 dark:bg-emerald-500'
     }`}
   >
@@ -327,7 +327,7 @@ const ExplanationPanel = memo(() => (
       What is a Race Condition?
     </h3>
     <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-      A race condition occurs when multiple goroutines access shared memory simultaneously. 
+      A race condition occurs when multiple goroutines access shared memory simultaneously.
       In this visualization:
     </p>
     <ul className="mt-2 space-y-1">
@@ -389,10 +389,10 @@ export const RaceConditionVisualizer = () => {
           expectedValue: sharedState,
         });
         setActiveConnections({ g1Read: true });
-        setGoroutines(prev => prev.map(g => 
+        setGoroutines(prev => prev.map(g =>
           g.id === 'g1' ? { ...g, status: 'reading', value: sharedState } : g
         ));
-        setHistory([{ 
+        setHistory([{
           value: sharedState,
           description: "Initial value read by Goroutine 1"
         }]);
@@ -404,10 +404,10 @@ export const RaceConditionVisualizer = () => {
           expectedValue: sharedState,
         });
         setActiveConnections({ g2Read: true });
-        setGoroutines(prev => prev.map(g => 
+        setGoroutines(prev => prev.map(g =>
           g.id === 'g2' ? { ...g, status: 'reading', value: sharedState } : g
         ));
-        setHistory([{ 
+        setHistory([{
           value: sharedState,
           description: "Initial value read by Goroutine 1"
         }]);
@@ -421,15 +421,15 @@ export const RaceConditionVisualizer = () => {
           actualValue: expectedAfterIncrement,
         });
         setActiveConnections({ g1Write: true });
-        setGoroutines(prev => prev.map(g => 
+        setGoroutines(prev => prev.map(g =>
           g.id === 'g1' ? { ...g, status: 'writing', value: g.value + 1 } : g
         ));
         setHistory([
-          { 
+          {
             value: sharedState,
             description: "Initial value read by Goroutine 1"
           },
-          { 
+          {
             value: expectedAfterIncrement,
             description: "Value after Goroutine 1 increments (0 → 1)"
           }
@@ -444,19 +444,19 @@ export const RaceConditionVisualizer = () => {
           actualValue: sharedState - 1,
         });
         setActiveConnections({ g2Write: true });
-        setGoroutines(prev => prev.map(g => 
+        setGoroutines(prev => prev.map(g =>
           g.id === 'g2' ? { ...g, status: 'writing', value: g.value - 1 } : g
         ));
         setHistory([
-          { 
+          {
             value: sharedState,
             description: "Initial value read by Goroutine 1"
           },
-          { 
+          {
             value: sharedState + 1,
             description: "Value after Goroutine 1 increments (0 → 1)"
           },
-          { 
+          {
             value: sharedState - 1,
             description: "Final value after Goroutine 2 decrements its stale copy (0 → -1)"
           }
@@ -498,7 +498,7 @@ export const RaceConditionVisualizer = () => {
   // Modified simulateRace for auto-play
   const simulateRace = useCallback(async () => {
     if (autoPlaying) return;
-    
+
     setAutoPlaying(true);
     // Reset all state before starting animation
     setStepIndex(0);
@@ -510,15 +510,15 @@ export const RaceConditionVisualizer = () => {
       { id: 'g2', value: 0, status: 'idle', operation: 'decrement' }
     ]);
     setSharedState(0);
-    
+
     // Wait a tick for state to reset
     await new Promise(r => setTimeout(r, 0));
-    
+
     for (let i = 1; i <= totalSteps; i++) {
       await new Promise(r => setTimeout(r, STEP_DELAY));
       applyStep(i);
     }
-    
+
     setAutoPlaying(false);
   }, [autoPlaying, totalSteps, applyStep]);
 
@@ -528,15 +528,15 @@ export const RaceConditionVisualizer = () => {
 
   return (
     <ErrorBoundary>
-      <motion.div 
+      <motion.div
         layout
         transition={{ duration: 0.3 }}
         className="my-8 bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-900 dark:to-neutral-900 rounded-xl overflow-hidden shadow-lg border border-neutral-200/50 dark:border-neutral-800"
         role="region"
         aria-label="Race Condition Visualization"
       >
-        <motion.div 
-          layout 
+        <motion.div
+          layout
           className="border-b border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-900/50 p-4"
         >
           <div className="flex justify-between items-center">
@@ -545,7 +545,7 @@ export const RaceConditionVisualizer = () => {
               <div className="w-3 h-3 rounded-full bg-yellow-400" role="presentation" />
               <div className="w-3 h-3 rounded-full bg-green-400" role="presentation" />
             </div>
-            <div 
+            <div
               className="text-sm font-medium text-neutral-500 dark:text-neutral-400"
               role="heading"
               aria-level={1}
@@ -555,8 +555,8 @@ export const RaceConditionVisualizer = () => {
           </div>
         </motion.div>
 
-        <motion.div 
-          layout 
+        <motion.div
+          layout
           className="p-4 space-y-4"
           transition={{ duration: 0.3 }}
         >
@@ -576,7 +576,7 @@ export const RaceConditionVisualizer = () => {
           </div>
 
           {/* Main Visualization Area */}
-          <motion.div 
+          <motion.div
             layout
             variants={scaleIn}
             initial="hidden"
@@ -589,16 +589,16 @@ export const RaceConditionVisualizer = () => {
             <div className="flex justify-center mb-16">
               {/* Add Connection Lines */}
               <div className="absolute inset-x-0 bottom-0 h-16">
-                <ConnectionLine 
+                <ConnectionLine
                   active={!!(activeConnections.g1Read || activeConnections.g2Read)}
-                  type="read" 
+                  type="read"
                 />
-                <ConnectionLine 
+                <ConnectionLine
                   active={!!(activeConnections.g1Write || activeConnections.g2Write)}
-                  type="write" 
+                  type="write"
                 />
               </div>
-              
+
               <motion.div
                 key={`shared-${sharedState}`}
                 variants={scaleIn}
@@ -614,7 +614,7 @@ export const RaceConditionVisualizer = () => {
                   <MemoryGlow />
                   <div className="relative w-full text-center">
                     <span className="block text-sm font-medium text-neutral-400 dark:text-neutral-500 mb-2">Shared Memory</span>
-                    <motion.div 
+                    <motion.div
                       key={sharedState}
                       initial={{ scale: 0.5, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
@@ -674,13 +674,13 @@ export const RaceConditionVisualizer = () => {
                       className="flex items-center space-x-3"
                       role="listitem"
                     >
-                      <div 
+                      <div
                         className="w-6 h-6 rounded-lg bg-white dark:bg-neutral-800 shadow-sm border border-neutral-200/50 dark:border-neutral-700 flex items-center justify-center text-xs font-medium text-neutral-600 dark:text-neutral-400"
                         aria-label={`Value: ${value}`}
                       >
                         {value}
                       </div>
-                      <div 
+                      <div
                         className="text-xs text-neutral-600 dark:text-neutral-400 tracking-wider"
                         aria-label={description}
                       >
@@ -694,7 +694,7 @@ export const RaceConditionVisualizer = () => {
           </AnimatePresence>
 
           {/* Control Button */}
-          <SimulationControls 
+          <SimulationControls
             isRunning={autoPlaying}
             onSimulate={simulateRace}
             onPrev={goToPrevStep}

@@ -26,7 +26,6 @@
 @variant dark (&:where(.dark, .dark *));
 @plugin "@tailwindcss/typography";
 
-@import "@upstash/claps/style.css";
 
 ::selection {
   color: #047857;
@@ -298,4 +297,19 @@ table {
   animation: enter 0.3s ease both;
   animation-delay: calc(var(--delay) * var(--stagger));
   --delay: 120ms;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
 }

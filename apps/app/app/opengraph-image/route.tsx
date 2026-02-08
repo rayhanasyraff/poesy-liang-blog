@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
           >
             <img
               src={new URL(
-                "/poesy-logo-pink.png",
+                "/images/poesy-logo-pink.png",
                 process.env.NEXT_PUBLIC_APP_URL
               ).toString()}
               width={24}

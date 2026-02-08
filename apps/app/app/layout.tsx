@@ -7,6 +7,7 @@ import "./globals.css";
 import { Header } from "@/components/header";
 import { ThemeProvider } from "./theme-provider";
 import Providers from "@/components/providers";
+import { LoadingProvider } from "@/components/loading-provider";
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,9 +23,9 @@ export const metadata: Metadata = {
   description:
     "POESY 小詩 - Artist",
   icons: {
-    icon: "/poesy-logo-pink.png",
-    shortcut: "/poesy-logo-pink.png",
-    apple: "/poesy-logo-pink.png",
+    icon: "/images/poesy-logo-pink.png",
+    shortcut: "/images/poesy-logo-pink.png",
+    apple: "/images/poesy-logo-pink.png",
   },
   openGraph: {
     title: "POESY 小詩 - Artist",
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/poesy-logo-pink.png",
+        url: "/images/poesy-logo-pink.png",
         width: 1200,
         height: 630,
         alt: "POESY 小詩",
@@ -75,8 +76,8 @@ export default function RootLayout({
     <Providers>
       <html lang="en" suppressHydrationWarning>
         <head>
-          <link rel="icon" type="image/png" href="/poesy-logo-pink.png" />
-          <link rel="shortcut icon" type="image/png" href="/poesy-logo-pink.png" />
+          <link rel="icon" type="image/png" href="/images/poesy-logo-pink.png" />
+          <link rel="shortcut icon" type="image/png" href="/images/poesy-logo-pink.png" />
         </head>
         <body
           className={`${inter.className} bg-background text-foreground overflow-y-scroll`}
@@ -88,13 +89,15 @@ export default function RootLayout({
             disableTransitionOnChange
             storageKey="theme"
           >
-            <main className="antialiased lg:max-w-2xl md:max-w-full mx-4 mb-40 flex flex-col md:flex-row mt-2 sm:mt-8 lg:mx-auto bg-background">
-              <section className="flex-auto min-w-0 mt-6 flex flex-col px-2 md:px-0">
-                <Header />
+            <LoadingProvider>
+              <main className="antialiased lg:max-w-2xl md:max-w-full mx-4 mb-40 flex flex-col md:flex-row mt-2 sm:mt-8 lg:mx-auto bg-background transition-all duration-300 ease-out">
+                <section className="flex-auto min-w-0 mt-6 flex flex-col px-2 md:px-0">
+                  <Header />
 
-                {children}
-              </section>
-            </main>
+                  {children}
+                </section>
+              </main>
+            </LoadingProvider>
           </ThemeProvider>
           <Analytics />
           <SpeedInsights />

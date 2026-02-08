@@ -58,6 +58,13 @@
       "options": {
         "targetName": "test"
       }
+    },
+    {
+      "plugin": "@nx/node",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "serve"
+      }
     }
   ],
   "targetDefaults": {
