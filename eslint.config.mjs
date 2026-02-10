@@ -9,6 +9,7 @@ export default [
   },
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+    // Using Nx flat config; avoid "plugins" array to stay compatible with flat config format.
     rules: {
       '@nx/enforce-module-boundaries': [
         'error',
@@ -25,6 +26,9 @@ export default [
       ],
     },
   },
+  // Note: To enable Next.js specific linting, add a separate .eslintrc.cjs in the apps/app folder or
+  // configure plugins using the flat config plugin object format if needed.
+
   {
     files: [
       '**/*.ts',
