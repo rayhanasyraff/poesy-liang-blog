@@ -5,7 +5,11 @@ export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
+    const urlObj = req.nextUrl ?? (req.url ? new URL(req.url) : null);
+    if (!urlObj) {
+      return new Response("Missing request URL", { status: 400 });
+    }
+    const searchParams = urlObj.searchParams;
     const title = searchParams.get("title");
 
     if (!title) {
@@ -55,7 +59,7 @@ export async function GET(req: NextRequest) {
                 fontWeight: 500,
               }}
             >
-              onurhan.dev
+              POESY 小詩
             </span>
           </div>
 

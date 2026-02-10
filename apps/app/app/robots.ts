@@ -5,7 +5,7 @@ export default function robots() {
         userAgent: "*",
       },
     ],
-    sitemap: "https://onurhan.dev/sitemap.xml",
-    host: "https://onurhan.dev",
+    sitemap: "https://blog.poesyliang.com/sitemap.xml",
+    host: "https://blog.poesyliang.com",
   };
 }

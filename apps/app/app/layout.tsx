@@ -1,3 +1,4 @@
+import '../lib/patch-url-parse';
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
@@ -13,7 +14,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://onurhan.dev"
+    process.env.NEXT_PUBLIC_APP_URL || "https://blog.poesyliang.com"
   ),
   title: {
     default: "POESY 小詩",
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
     title: "POESY 小詩 - Artist",
     description:
       "Artist",
-    url: "https://onurhan.dev",
+    url: "https://blog.poesyliang.com",
     siteName: "POESY 小詩",
     locale: "en_US",
     type: "website",
@@ -43,6 +44,7 @@ export const metadata: Metadata = {
       },
     ],
   },
+
   robots: {
     index: true,
     follow: true,
@@ -57,9 +59,10 @@ export const metadata: Metadata = {
   twitter: {
     title: "POESY 小詩",
     card: "summary_large_image",
-    site: "@onurhan1337",
-    creator: "@onurhan1337",
+    site: "@poesyliang",
+    creator: "@poesyliang",
   },
+
   verification: {
     google: "K1pkJ72cY3DylswXke2MHJGxmjJ91WXwgozcCICvFrU",
     // TODO: Add yandex verification key here
@@ -77,6 +80,7 @@ export default function RootLayout({
         <head>
           <link rel="icon" type="image/png" href="/poesy-logo-pink.png" />
           <link rel="shortcut icon" type="image/png" href="/poesy-logo-pink.png" />
+          <script async src="https://www.instagram.com/embed.js"></script>
         </head>
         <body
           className={`${inter.className} bg-background text-foreground overflow-y-scroll`}

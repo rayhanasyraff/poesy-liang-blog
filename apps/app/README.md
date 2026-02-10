@@ -1,6 +1,6 @@
-# onurhan.dev
+# blog.poesyliang.com
 
-<a href="https://www.buymeacoffee.com/onurhan"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=onurhan&button_colour=FFDD00&font_colour=000000&font_family=Inter&outline_colour=000000&coffee_colour=ffffff" /></a>
+<a href="https://www.buymeacoffee.com/poesyliang"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=poesyliang&button_colour=FFDD00&font_colour=000000&font_family=Inter&outline_colour=000000&coffee_colour=ffffff" /></a>
 
 - **Icons**: [Lucide React](https://lucide.dev/icons/)
 - **Like**: [Upstash Claps](https://github.com/upstash/claps)
@@ -25,7 +25,7 @@
 ## Demo
 
 ```bash
-https://onurhan.dev
+https://blog.poesyliang.com
 ```
 
 ## Running Locally
@@ -33,17 +33,17 @@ https://onurhan.dev
 This application requires Node.js v16.13+.
 
 ```bash
-git clone https://github.com/onurhan1337/my-website.git
+git clone https://github.com/poesyliang/my-website.git
 cd my-website
 npm install
 npm run dev
 ```
 
-Create a `.env` file similar to [`.env.example`](https://github.com/onurhan1337/my-website/blob/master/.env.example). You don't need to fill them out for the site to work. However, it is required to be able to use the [Upstash/Claps](https://github.com/upstash/claps) package.
+Create a `.env` file similar to [`.env.example`](https://github.com/poesyliang/my-website/blob/master/.env.example). You don't need to fill them out for the site to work. However, it is required to be able to use the [Upstash/Claps](https://github.com/upstash/claps) package.
 
 ## Cloning / Forking
 
-Please review the [license](https://github.com/onurhan1337/my-website/blob/master/LICENSE.txt) and remove all of my personal information (resume, blog posts, images, etc.).
+Please review the [license](https://github.com/poesyliang/my-website/blob/master/LICENSE.txt) and remove all of my personal information (resume, blog posts, images, etc.).
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started

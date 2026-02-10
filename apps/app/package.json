@@ -1,6 +1,6 @@
 {
-  "author": "Onurhan Demir",
-  "description": "Onurhan Demir - Software Developer",
+  "author": "Rayhan Amran",
+  "description": "Rayhan Amran - Software Developer",
   "name": "@poesy-liang-blog/app",
   "version": "0.3.0",
   "private": true,
@@ -20,7 +20,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@tanstack/react-query": "^5.90.2",
     "@tanstack/react-virtual": "^3.13.12",
-    "@upstash/claps": "1.0.0-beta.5",
+
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
     "class-variance-authority": "^0.7.1",

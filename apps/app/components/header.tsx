@@ -8,7 +8,7 @@ import { ModeToggle } from "./ui/theme-toggle";
 
 const NAV_ITEMS = {
   blog: "/",
-  about: "/about"
+  about: "/about",
   // work: "/work",
 };
 

@@ -1,6 +1,5 @@
-import createClapsAPI from "@upstash/claps/api";
+import { NextApiRequest, NextApiResponse } from 'next';
 
-const ClapsAPI = createClapsAPI({
-  maxClaps: 30,
-});
-export default ClapsAPI;
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.status(404).end();
+}

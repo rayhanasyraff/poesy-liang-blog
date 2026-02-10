@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const AnyButton: any = Button;
 import {
   DropdownMenu,

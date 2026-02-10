@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 
 import { getBlogPosts } from "@/app/db/blog";
-import Claps from "@/components/claps";
+
 import { CustomMDX } from "@/components/mdx";
 import TableOfContents from "@/components/table-of-contents";
 import { extractHeadings, formatDate } from "@/lib/utils";
@@ -29,11 +29,17 @@ export async function generateMetadata({
     keywords,
   } = blog.metadata;
 
-  const ogImage =
+  const generatedOgImage =
     new URL(
       "/opengraph-image",
-      process.env.NEXT_PUBLIC_APP_URL || "https://onurhan.dev"
+      process.env.NEXT_PUBLIC_APP_URL || "https://blog.poesyliang.com"
     ).toString() + `?title=${encodeURIComponent(title)}`;
+
+  const finalOgImage = blog.metadata.image
+    ? blog.metadata.image.startsWith("http")
+      ? blog.metadata.image
+      : `${process.env.NEXT_PUBLIC_APP_URL || "https://blog.poesyliang.com"}${blog.metadata.image}`
+    : generatedOgImage;
 
   return {
     title,
@@ -42,12 +48,13 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
+      siteName: "POESY 小詩",
       type: "article",
       publishedTime,
-      url: `https://onurhan.dev/blog/${blog.slug}`,
+      url: `https://blog.poesyliang.com/blog/${blog.slug}`,
       images: [
         {
-          url: ogImage,
+          url: finalOgImage,
           width: 1200,
           height: 630,
           alt: title,
@@ -58,9 +65,9 @@ export async function generateMetadata({
       card: "summary_large_image",
       title,
       description,
-      site: "@onurhan1337",
-      creator: "@onurhan1337",
-      images: [ogImage],
+      site: "@poesyliang",
+      creator: "@poesyliang",
+      images: [finalOgImage],
     },
   };
 }
@@ -88,12 +95,12 @@ export default async function BlogDetailPage({ params }: Props) {
             dateModified: blog.metadata.publishedAt,
             description: blog.metadata.summary,
             image: blog.metadata.image
-              ? `https://onurhan.dev${blog.metadata.image}`
-              : `https://onurhan.dev/og?title=${blog.metadata.title}`,
-            url: `https://onurhan.dev/blog/${blog.slug}`,
+              ? (blog.metadata.image.startsWith("http") ? blog.metadata.image : `https://blog.poesyliang.com${blog.metadata.image}`)
+              : `https://blog.poesyliang.com/og?title=${blog.metadata.title}`,
+            url: `https://blog.poesyliang.com/blog/${blog.slug}`,
             author: {
               "@type": "Person",
-              name: "Onurhan Demir",
+              name: "POESY 小詩",
             },
           }),
         }}
@@ -115,7 +122,7 @@ export default async function BlogDetailPage({ params }: Props) {
         <CustomMDX source={blog.content} />
       </article>
 
-      <Claps key={blog.slug} />
+
     </section>
   );
 }

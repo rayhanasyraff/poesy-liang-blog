@@ -26,7 +26,7 @@
 @variant dark (&:where(.dark, .dark *));
 @plugin "@tailwindcss/typography";
 
-@import "@upstash/claps/style.css";
+
 
 ::selection {
   color: #047857;

@@ -7,6 +7,7 @@ import { useMemo } from "react";
 import { BlogList } from "./blog-list";
 import { Button } from "./ui/button";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const AnyButton: any = Button;
 
 interface PaginationProps {

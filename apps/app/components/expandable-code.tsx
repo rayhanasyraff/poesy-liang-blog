@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const AnyButton: any = Button;
 
 interface ExpandableCodeProps {

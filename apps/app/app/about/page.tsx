@@ -4,17 +4,17 @@ import Script from "next/script";
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "Person",
-  name: "Onurhan Demir",
+  name: "POESY 小詩",
   jobTitle: "Software Developer",
   worksFor: {
     "@type": "Organization",
     name: "Insider",
   },
-  url: "https://onurhan.dev",
+  url: "https://blog.poesyliang.com",
   sameAs: [
-    "https://github.com/onurhan1337",
-    "https://youtube.com/@onurhandev",
-    "https://read.cv/onurhan",
+    "https://www.instagram.com/poesyliang/",
+    "https://www.facebook.com/poesyliang/",
+    "https://www.linkedin.com/in/poesy/",
   ],
 };
 
