@@ -1,6 +1,6 @@
 import Container from "@/components/shared/container";
 import type { Metadata } from "next";
-import { Suspense } from "react";
+
 import { getBlogPosts } from "./db/blog";
 import InfiniteScrollBlogList from "@/components/infinite-scroll-blog-list";
 
@@ -14,9 +14,7 @@ export default function Home() {
 
   return (
     <Container size="large">
-      <Suspense fallback={<div>Loading...</div>}>
-        <InfiniteScrollBlogList blogs={allBlogs} />
-      </Suspense>
+      <InfiniteScrollBlogList blogs={allBlogs} />
     </Container>
   );
 }

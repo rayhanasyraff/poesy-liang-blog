@@ -7,6 +7,8 @@ import { useMemo } from "react";
 import { BlogList } from "./blog-list";
 import { Button } from "./ui/button";
 
+const AnyButton: any = Button;
+
 interface PaginationProps {
   allBlogs: Blog[];
   postsPerPage?: number;
@@ -80,13 +82,13 @@ function PaginationButton({
   onClick: () => void;
 }) {
   return (
-    <Button
+    <AnyButton
       onClick={onClick}
       disabled={disabled}
       variant="outline"
       className={cn("tracking-tight shadow-none", disabled && "opacity-50")}
     >
       {children}
-    </Button>
+    </AnyButton>
   );
 }

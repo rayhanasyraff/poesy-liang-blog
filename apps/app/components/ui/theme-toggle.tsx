@@ -5,6 +5,8 @@ import { ChevronDown, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
+
+const AnyButton: any = Button;
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,11 +20,11 @@ export function ModeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <AnyButton variant="ghost" size="icon">
           <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
-        </Button>
+        </AnyButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme("light")}>
@@ -58,13 +60,13 @@ export function ModeToggleWithLabel() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size={"sm"} variant="outline" className="mt-6">
+        <AnyButton size={"sm"} variant="outline" className="mt-6">
           <span className="text-sm text-muted-foreground dark:text-neutral-400 leading-7">
             {resolveLabel(theme as string)}
           </span>
 
           <ChevronDown className="h-4 w-4 ml-2 text-muted-foreground dark:Text-neutral-400" />
-        </Button>
+        </AnyButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme("light")}>

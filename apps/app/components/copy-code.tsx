@@ -5,6 +5,8 @@ import { Check, Copy } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Button } from "./ui/button";
 
+const AnyButton: any = Button;
+
 interface CopyCodeProps {
   children: React.ReactNode;
   code?: string;
@@ -29,7 +31,7 @@ export function CopyCode({ children, code, className }: CopyCodeProps) {
   return (
     <div className={cn("relative group", className)}>
       <div className="absolute right-2 top-2 z-20">
-        <Button
+        <AnyButton
           variant="ghost"
           size="icon"
           className={cn(
@@ -48,7 +50,7 @@ export function CopyCode({ children, code, className }: CopyCodeProps) {
             <Copy className="h-4 w-4 text-zinc-600 dark:text-neutral-400" />
           )}
           <span className="sr-only">{isCopied ? "Copied!" : "Copy code"}</span>
-        </Button>
+        </AnyButton>
       </div>
       {children}
     </div>

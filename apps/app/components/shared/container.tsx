@@ -1,7 +1,6 @@
-import { ReactNode } from "react";
-
+// children typed as any to avoid cross-package @types/react conflicts
 type ContainerProps = {
-  children: ReactNode;
+  children: any;
   size?: "small" | "medium" | "large";
   className?: string;
 };
