@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
+
 
 import { getBlogPosts } from "@/app/db/blog";
 import Claps from "@/components/claps";
@@ -102,7 +102,6 @@ export default async function BlogDetailPage({ params }: Props) {
         {blog.metadata.title}
       </h1>
       <div className="flex justify-start items-center mt-2 mb-8 text-sm max-w-[650px]">
-        <Suspense fallback={<p className="h-5" />}>
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
             {formatDate(blog.metadata.publishedAt)}
           </p>
@@ -110,7 +109,6 @@ export default async function BlogDetailPage({ params }: Props) {
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
             {blog.readingTime} min read
           </p>
-        </Suspense>
       </div>
       <TableOfContents headings={headings} />
       <article className="prose prose-quoteless prose-neutral dark:prose-invert text-justify w-auto">
