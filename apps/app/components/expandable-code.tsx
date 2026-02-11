@@ -5,6 +5,9 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const AnyButton: any = Button;
+
 interface ExpandableCodeProps {
   children: React.ReactNode;
   maxHeight?: number;
@@ -50,7 +53,7 @@ export function ExpandableCode({
 
       {shouldShowButton && (
         <div className="flex justify-center mt-1">
-          <Button
+          <AnyButton
             variant="ghost"
             size="sm"
             onClick={toggleExpand}
@@ -69,7 +72,7 @@ export function ExpandableCode({
                 Show More <ChevronDown className="h-3 w-3" />
               </>
             )}
-          </Button>
+          </AnyButton>
         </div>
       )}
     </div>

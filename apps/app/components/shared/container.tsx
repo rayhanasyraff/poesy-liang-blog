@@ -1,7 +1,7 @@
-import { ReactNode } from "react";
-
+// children typed as any to avoid cross-package @types/react conflicts
 type ContainerProps = {
-  children: ReactNode;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  children: any;
   size?: "small" | "medium" | "large";
   className?: string;
 };

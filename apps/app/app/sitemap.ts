@@ -1,13 +1,13 @@
 import { fetchBlogsCompatible } from "@/lib/api";
 
 export default async function sitemap() {
-  const blogs = (await fetchBlogsCompatible()).map((blog) => ({
-    url: `https://onurhan.dev/blog/${blog.slug}`,
+  const blogs = getBlogPosts().map((blog) => ({
+    url: `https://blog.poesyliang.com/blog/${blog.slug}`,
     lastModified: blog.metadata.publishedAt,
   }));
 
-  const routes = ["", "/blog"].map((route) => ({
-    url: `https://onurhan.dev${route}`,
+  const routes = ["", "/blog", "/about"].map((route) => ({
+    url: `https://blog.poesyliang.com${route}`,
     lastModified: new Date().toISOString().split("T")[0],
   }));
 
