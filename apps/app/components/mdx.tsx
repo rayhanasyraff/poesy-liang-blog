@@ -1,4 +1,5 @@
 import { ArrowUpRight, Coffee } from "lucide-react";
+import InstagramEmbed from "./instagram-embed";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import Image from "next/image";
 import Link from "next/link";
@@ -284,6 +285,7 @@ const components = {
   LinkCardList,
   LinkCard,
   BuyMeACoffee,
+  InstagramEmbed,
   TaskSimulator,
   RaceConditionVisualizer,
   GoroutineScheduler,
