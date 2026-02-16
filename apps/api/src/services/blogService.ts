@@ -10,7 +10,8 @@ async function fetchFromBlogApi(endpoint: string, method = "GET", body?: BlogPos
     }
   };
 
-  if (body && method === "POST") {
+  // Allow sending a JSON body for POST/PUT/PATCH requests
+  if (body && method && method.toUpperCase() !== "GET") {
     options.body = JSON.stringify(body);
   }
 
@@ -21,6 +22,42 @@ async function fetchFromBlogApi(endpoint: string, method = "GET", body?: BlogPos
   }
 
   return response.json();
+}
+
+export async function updateBlog(id: string, blog: BlogPost): Promise<{ success: boolean; message?: string }> {
+  try {
+    const endpoint = `${config.poesyliangNet.apiBaseUrl}/blogs/${id}`;
+    const response = await fetchFromBlogApi(endpoint, "PUT", blog);
+
+    return {
+      success: response.success,
+      message: response.message,
+    };
+  } catch (error) {
+    console.error("Error updating blog:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+export async function deleteBlog(id: string): Promise<{ success: boolean; message?: string }> {
+  try {
+    const endpoint = `${config.poesyliangNet.apiBaseUrl}/blogs/${id}`;
+    const response = await fetchFromBlogApi(endpoint, "DELETE");
+
+    return {
+      success: response.success,
+      message: response.message,
+    };
+  } catch (error) {
+    console.error("Error deleting blog:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 }
 
 export async function fetchAllBlogs(): Promise<BlogPost[]> {

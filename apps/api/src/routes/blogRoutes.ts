@@ -2,7 +2,9 @@ import { Router } from "express";
 import {
   getAllBlogsFromApi,
   getBlogByIdFromApi,
-  createBlog
+  createBlog,
+  updateBlogFromApi,
+  deleteBlogFromApi
 } from "../controllers/blogController";
 
 const router = Router();
@@ -13,5 +15,11 @@ router.get("/blogs/:id", getBlogByIdFromApi);
 
 // POST endpoint to create blog
 router.post("/blogs", createBlog);
+
+// PUT endpoint to update a blog by id/slug
+router.put("/blogs/:id", updateBlogFromApi);
+
+// DELETE endpoint to remove a blog by id/slug
+router.delete("/blogs/:id", deleteBlogFromApi);
 
 export default router;

@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { fetchBlogs, fetchBlogById, insertBlog } from "../services/blogService";
+import { fetchBlogs, fetchBlogById, insertBlog, updateBlog, deleteBlog } from "../services/blogService";
 import { config } from "../config/config";
 
 export async function getAllBlogsFromApi(req: Request, res: Response): Promise<void> {
@@ -91,5 +91,52 @@ export async function createBlog(req: Request, res: Response): Promise<void> {
       success: false,
       error: "Failed to create blog"
     });
+  }
+}
+
+export async function updateBlogFromApi(req: Request, res: Response): Promise<void> {
+  try {
+    const id = req.params.id;
+    const blogData = req.body;
+
+    if (!id || !blogData) {
+      res.status(400).json({ success: false, error: "Blog ID and data are required" });
+      return;
+    }
+
+    const result = await updateBlog(id, blogData);
+
+    if (!result.success) {
+      res.status(500).json({ success: false, error: result.message || "Failed to update blog" });
+      return;
+    }
+
+    res.status(200).json({ success: true, message: result.message || "Blog updated successfully" });
+  } catch (error) {
+    console.error("Error in updateBlogFromApi:", error);
+    res.status(500).json({ success: false, error: "Failed to update blog" });
+  }
+}
+
+export async function deleteBlogFromApi(req: Request, res: Response): Promise<void> {
+  try {
+    const id = req.params.id;
+
+    if (!id) {
+      res.status(400).json({ success: false, error: "Blog ID is required" });
+      return;
+    }
+
+    const result = await deleteBlog(id);
+
+    if (!result.success) {
+      res.status(500).json({ success: false, error: result.message || "Failed to delete blog" });
+      return;
+    }
+
+    res.status(200).json({ success: true, message: result.message || "Blog deleted successfully" });
+  } catch (error) {
+    console.error("Error in deleteBlogFromApi:", error);
+    res.status(500).json({ success: false, error: "Failed to delete blog" });
   }
 }
