@@ -4,13 +4,14 @@ import type { ApiBlog, Blog } from '@/types/blog';
 export function convertApiBlogToBlog(apiBlog: ApiBlog): Blog {
   // Calculate reading time (approximate)
   const wordsPerMinute = 200;
-  const wordCount = apiBlog.blog_content.split(' ').length;
-  const readingTime = Math.ceil(wordCount / wordsPerMinute);
+  const contentText = apiBlog.blog_content || '';
+  const wordCount = contentText.trim() ? contentText.split(/\s+/).filter(Boolean).length : 0;
+  const readingTime = Math.max(1, Math.ceil(wordCount / wordsPerMinute));
 
   // Generate summary from blog_excerpt or content
-  const summary = apiBlog.blog_excerpt
+  const summary = apiBlog.blog_excerpt && apiBlog.blog_excerpt.trim()
     ? apiBlog.blog_excerpt
-    : apiBlog.blog_content.substring(0, 200).replace(/<[^>]*>/g, '') + '...';
+    : (contentText ? contentText.substring(0, 200).replace(/<[^>]*>/g, '') + '...' : '');
 
   // Handle date conversion
   const getPublishedDate = (apiBlog: ApiBlog): string => {

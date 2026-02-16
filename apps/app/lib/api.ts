@@ -121,7 +121,8 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
     try {
       const apiBlogs = await fetchAllBlogsFromApi(); // Fetch ALL blogs with caching
       const matchingBlog = apiBlogs.find(blog => {
-        const blogSlug = blog.blog_name.toLowerCase();
+        const blogSlugRaw = (blog.blog_name || '').toString();
+        const blogSlug = blogSlugRaw.toLowerCase();
         // Try exact match, decoded match, or encoded match
         return blogSlug === slug.toLowerCase() ||
                blogSlug === encodedSlug ||
