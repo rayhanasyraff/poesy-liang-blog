@@ -19,13 +19,13 @@ export default function Layout({ children }: Args) {
     translations: {},
   } as any
 
-  const clientConfig = createClientConfig({ config, i18n, importMap: undefined as any })
-n  const languageOptions = Object.entries((config.i18n?.supportedLanguages || {})).reduce((acc: any[], [language, languageConfig]: any) => {
+  const clientConfig = createClientConfig({ config, i18n, importMap: undefined as any });
+  const languageOptions = Object.entries(config.i18n?.supportedLanguages || {}).reduce((acc: any[], [language, languageConfig]: any) => {
     if (Object.keys(config.i18n?.supportedLanguages || {}).includes(language)) {
-      acc.push({ label: (languageConfig as any).translations?.general?.thisLanguage || language, value: language })
+      acc.push({ label: (languageConfig as any).translations?.general?.thisLanguage || language, value: language });
     }
-    return acc
-  }, [])
+    return acc;
+  }, []);
 
   return (
     <RootProvider
