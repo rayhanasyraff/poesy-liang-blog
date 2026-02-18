@@ -83,9 +83,9 @@ async function startDevServer() {
 
   console.log(`🚀 Starting Next.js app on http://localhost:${availablePort}`);
 
-  // Get API URL and set it as environment variable
-  const apiUrl = getApiUrl();
-  console.log(`🔗 Connecting to API at ${apiUrl}`);
+  // Use the NEXT_PUBLIC_API_URL environment variable exclusively (no auto-discovery)
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  console.log(`🔗 Using API URL from env: ${apiUrl}`);
 
   // Use npx to run next, and ensure PORT is set correctly
   const nextProcess = spawn('npx', ['next', 'dev', '-p', availablePort.toString()], {

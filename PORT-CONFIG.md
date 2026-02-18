@@ -11,6 +11,8 @@ The Next.js app automatically detects which port the API is running on! When the
 - **API Server**: Port 3001
 - **Next.js App**: Port 3000
 
+Note: automatic port discovery has been removed; set NEXT_PUBLIC_API_URL in apps/app/.env to point to the API (e.g. NEXT_PUBLIC_API_URL=http://localhost:3001).
+
 ## Automatic Port Fallback
 
 Both the API and Next.js app have automatic port fallback mechanisms. If the default port is already in use, they will automatically try alternative ports.
