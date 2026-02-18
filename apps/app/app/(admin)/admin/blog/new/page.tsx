@@ -1,10 +1,12 @@
 "use client"
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Container from "@/components/shared/container";
 import { createBlog } from "@/api/api";
 
 export default function NewBlogPage() {
+  const router = useRouter();
   const [form, setForm] = useState({
     blog_title: "",
     blog_name: "",
