@@ -1,12 +1,10 @@
 "use client"
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Container from "@/components/shared/container";
 import { createBlog } from "@/api/api";
 
 export default function NewBlogPage() {
-  const router = useRouter();
   const [form, setForm] = useState({
     blog_title: "",
     blog_name: "",
@@ -26,7 +24,7 @@ export default function NewBlogPage() {
       const res = await createBlog(form);
       if (res && res.success) {
         // If API returns an id or data, could navigate to edit; for now go back to admin blog list
-        router.push("/admin/blog");
+        window.location.href = "/admin/blog";
       } else {
         alert(res?.message || "Failed to create blog");
       }
@@ -106,7 +104,7 @@ export default function NewBlogPage() {
 
           <button
             type="button"
-            onClick={() => router.push("/admin/blog")}
+            onClick={() => (window.location.href = "/admin/blog")}
             className="inline-flex items-center rounded-md border px-3 py-1 text-sm"
           >
             Cancel
