@@ -13,7 +13,7 @@
     "noImplicitOverride": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "strict": true,
     "target": "es2022",
     "customConditions": ["@poesy-liang-blog/source"]
