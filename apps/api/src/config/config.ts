@@ -1,5 +1,5 @@
 export const config = {
-  port: parseInt(process.env.PORT || "3001", 10),
+  port: Number.parseInt(process.env.PORT || "3001", 10),
   fallbackPorts: [3001, 3011, 3021, 3031], // Fallback ports if primary port is in use
   poesyliangNet: {
     apiBaseUrl: process.env.POESYLIANG_NET_API_BASE_URL || "http://poesyliang.net/api.php",

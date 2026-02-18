@@ -1,7 +1,8 @@
 import { fetchBlogsCompatible } from "@/lib/api";
 
 export default async function sitemap() {
-  const blogs = getBlogPosts().map((blog) => ({
+  const allBlogs = await fetchBlogsCompatible();
+  const blogs = allBlogs.map((blog) => ({
     url: `https://blog.poesyliang.com/blog/${blog.slug}`,
     lastModified: blog.metadata.publishedAt,
   }));

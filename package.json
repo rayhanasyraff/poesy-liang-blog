@@ -5,9 +5,18 @@
   "scripts": {},
   "private": true,
   "dependencies": {
-    "next": "15.5.9",
+    "@mdxeditor/editor": "^3.52.3",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@tanstack/react-query": "^5.90.21",
+    "axios": "^1.13.5",
+    "express": "^5.2.1",
+    "fs": "^0.0.1-security",
+    "next": "^16.1.6",
+    "path": "^0.12.7",
     "react": "19.1.1",
-    "react-dom": "19.1.1"
+    "react-dom": "19.1.1",
+    "turndown": "^7.2.2"
   },
   "devDependencies": {
     "@eslint/compat": "^1.4.1",
@@ -20,6 +29,7 @@
     "@nx/jest": "21.5.3",
     "@nx/js": "21.5.3",
     "@nx/next": "21.5.3",
+    "@nx/node": "^22.5.1",
     "@nx/playwright": "21.5.3",
     "@nx/workspace": "21.5.3",
     "@playwright/test": "^1.58.2",
@@ -30,7 +40,7 @@
     "@testing-library/dom": "10.4.0",
     "@testing-library/react": "16.1.0",
     "@types/bun": "latest",
-    "@types/express": "^5.0.3",
+    "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "20.19.9",
     "@types/react": "19.1.1",

@@ -9,7 +9,6 @@ import { ModeToggle } from '@/components/ui/theme-toggle'
 const ADMIN_NAV_ITEMS = {
   blog: '/admin',
   about: '/admin/about',
-  settings: '/admin/settings',
 }
 
 interface AdminHeaderProps {
@@ -55,7 +54,6 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                 </Link>
               ))}
             </div>
-            <ModeToggle />
           </div>
         </nav>
       </Container>

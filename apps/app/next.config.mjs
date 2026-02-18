@@ -1,4 +1,3 @@
-import { withPayload } from '@payloadcms/next/withPayload'
 import redirects from './redirects.js'
 
 const NEXT_PUBLIC_SERVER_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -10,7 +9,7 @@ const nextConfig = {
   transpilePackages: ["next-mdx-remote"],
   images: {
     remotePatterns: [
-      ...[NEXT_PUBLIC_SERVER_URL].map((item) => {
+      ...[NEXT_PUBLIC_SERVER_URL].filter(Boolean).map((item) => {
         const url = new URL(item)
 
         return {
@@ -20,17 +19,10 @@ const nextConfig = {
       }),
     ],
   },
-  webpack: (webpackConfig) => {
-    webpackConfig.resolve.extensionAlias = {
-      '.cjs': ['.cts', '.cjs'],
-      '.js': ['.ts', '.tsx', '.js', '.jsx'],
-      '.mjs': ['.mts', '.mjs'],
-    }
 
-    return webpackConfig
-  },
+  turbopack: {},
   reactStrictMode: true,
   redirects,
 }
 
-export default withPayload(nextConfig, { devBundleServerPackages: false })
+export default nextConfig

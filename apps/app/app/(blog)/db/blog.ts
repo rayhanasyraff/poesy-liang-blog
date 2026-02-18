@@ -37,10 +37,19 @@ function parseFrontmatter(fileContent: string) {
 }
 
 function getMDXFiles(dir) {
-  return fs.readdirSync(dir).filter((file) => path.extname(file) === ".mdx");
+  try {
+    const entries = fs.readdirSync(dir);
+    return entries.filter((file) => typeof file === 'string' && path.extname(file) === '.mdx');
+  } catch (e) {
+    console.warn(`Could not read MDX directory ${dir}:`, e);
+    return [];
+  }
 }
 
 function readMDXFile(filePath) {
+  if (typeof filePath !== 'string') {
+    throw new TypeError(`Invalid file path: ${String(filePath)}`);
+  }
   const rawContent = fs.readFileSync(filePath, "utf-8");
   return parseFrontmatter(rawContent);
 }
@@ -64,20 +73,28 @@ function getReadingTime(content) {
 
 function getMDXData(dir) {
   const mdxFiles = getMDXFiles(dir);
-  return mdxFiles.map((file) => {
-    const { metadata, content } = readMDXFile(path.join(dir, file));
-    const slug = path.basename(file, path.extname(file));
-    const readingTime = getReadingTime(content);
-    return {
-      metadata,
-      slug,
-      content,
-      readingTime,
-      like_count: 0,
-      comment_count: 0,
-      tags: '',
-    };
-  });
+  const results: { metadata: Metadata; slug: string; content: string; readingTime: number; like_count: number; comment_count: number; tags: string }[] = [];
+  for (const file of mdxFiles) {
+    if (!file) continue;
+    try {
+      const filePath = path.join(dir, file);
+      const { metadata, content } = readMDXFile(filePath);
+      const slug = path.basename(file, path.extname(file));
+      const readingTime = getReadingTime(content);
+      results.push({
+        metadata,
+        slug,
+        content,
+        readingTime,
+        like_count: 0,
+        comment_count: 0,
+        tags: '',
+      });
+    } catch (err) {
+      console.warn(`Skipping MDX file ${file} due to error:`, err);
+    }
+  }
+  return results;
 }
 
 export function getBlogPosts() {
