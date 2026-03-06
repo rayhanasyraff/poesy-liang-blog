@@ -626,7 +626,7 @@ export const BlogEditor = ({
             left: 32px;
           }
           .blog-editor-title[data-empty="false"]::before { display: none; }
-          .blog-editor-title { padding-left: 24px; }
+          .blog-editor-title { padding-left: 24px; color: inherit; }
           .draggable-block-menu {
             border: none;
             background: transparent;
@@ -691,12 +691,13 @@ export const BlogEditor = ({
           .blog-editor-root .lexical-code,
           .blog-editor-root .kg-code,
           .blog-editor-root pre[class*="language-"] {
-            background: rgba(0,0,0,0.04);
-            color: inherit;
-            padding: 12px;
-            border-radius: 8px;
-            overflow: auto;
-            box-shadow: none;
+            background: rgba(0,0,0,0.06) !important;
+            color: rgba(0,0,0,0.92) !important;
+            padding: 12px !important;
+            border-radius: 8px !important;
+            overflow: auto !important;
+            box-shadow: none !important;
+            border: 1px solid rgba(0,0,0,0.04) !important;
           }
           @media (prefers-color-scheme: dark) {
             .blog-editor-root pre,
@@ -704,7 +705,9 @@ export const BlogEditor = ({
             .blog-editor-root .lexical-code,
             .blog-editor-root .kg-code,
             .blog-editor-root pre[class*="language-"] {
-              background: rgba(255,255,255,0.04);
+              background: rgba(255,255,255,0.06) !important;
+              color: rgba(255,255,255,0.95) !important;
+              border: 1px solid rgba(255,255,255,0.04) !important;
             }
           }
 
