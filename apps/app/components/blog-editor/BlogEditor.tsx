@@ -286,55 +286,8 @@ export const BlogEditor = ({
   const pencilSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressFocusEntryRef = useRef(false);
 
-  const [editorBounds, setEditorBounds] = useState({ left: 0, right: 0 });
-  const [titleCenterX, setTitleCenterX] = useState<number | null>(null);
-
-  const captureEditorBounds = useCallback(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    const r = root.getBoundingClientRect();
-    setEditorBounds({ left: r.left, right: window.innerWidth - r.right });
-  }, []);
-
-  useEffect(() => {
-    if (!isContentFocused) return;
-    const parent = rootRef.current?.parentElement;
-    if (!parent) return;
-    const measure = () => {
-      const r = parent.getBoundingClientRect();
-      setEditorBounds({ left: r.left, right: window.innerWidth - r.right });
-    };
-    const ro = new ResizeObserver(measure);
-    ro.observe(document.documentElement);
-    window.addEventListener('resize', measure);
-
-    // After header mounts, compute header center X to precisely align title
-    const computeHeaderCenter = () => {
-      try {
-        const el = document.querySelector('[data-fullscreen-header-inner]') as HTMLElement | null;
-        if (el) {
-          const hr = el.getBoundingClientRect();
-          setTitleCenterX(hr.left + hr.width / 2);
-          return;
-        }
-      } catch {}
-
-      // fallback to parent center
-      try {
-        const r = parent.getBoundingClientRect();
-        setTitleCenterX(r.left + r.width / 2);
-      } catch {}
-    };
-
-    // run after a short delay so header has mounted
-    const t = setTimeout(computeHeaderCenter, 40);
-
-    return () => {
-      clearTimeout(t);
-      ro.disconnect();
-      window.removeEventListener('resize', measure);
-    };
-  }, [isContentFocused]);
+  const [editorLeft, setEditorLeft] = useState(0);
+  const [editorRight, setEditorRight] = useState(0);
 
   const focusBody = useCallback(() => {
     const ce = bodyWrapperRef.current?.querySelector<HTMLElement>('[contenteditable]');
@@ -344,6 +297,28 @@ export const BlogEditor = ({
       ce?.focus();
     }
   }, []);
+
+  const enterFocusMode = useCallback(() => {
+    if (isContentFocused) return;
+    const root = rootRef.current;
+    if (root) {
+      const r = root.getBoundingClientRect();
+      setEditorLeft(r.left);
+      setEditorRight(window.innerWidth - r.right);
+    }
+    try {
+      const t = titleRef.current;
+      const existing = (t?.value ?? '').replace(/\u200B/g, '').trim();
+      if (t && existing === '') {
+        t.value = 'New Blog';
+        t.parentElement?.setAttribute('data-empty', 'false');
+        try { t.style.height = 'auto'; t.style.height = `${t.scrollHeight}px`; } catch {}
+        setTitleText('New Blog');
+        onTitleChange?.('New Blog');
+      }
+    } catch {}
+    setIsContentFocused(true);
+  }, [isContentFocused, onTitleChange]);
 
   const focusTitleAtEnd = useCallback(() => {
     const title = titleRef.current;
@@ -356,46 +331,12 @@ export const BlogEditor = ({
   }, []);
 
   const handleBodyPointerDown = useCallback(() => {
-    if (!isContentFocused) {
-      captureEditorBounds();
-
-      // If title is empty when entering editor, default to "New Blog"
-      try {
-        const t = titleRef.current;
-        const existing = (t?.value ?? '').replace(/\u200B/g, '').trim();
-        if (t && existing === '') {
-          t.value = 'New Blog';
-          t.parentElement?.setAttribute('data-empty', 'false');
-          try { t.style.height = 'auto'; t.style.height = `${t.scrollHeight}px`; } catch {}
-          setTitleText('New Blog');
-          onTitleChange?.('New Blog');
-        }
-      } catch {}
-
-      setIsContentFocused(true);
-    }
-  }, [captureEditorBounds, isContentFocused, onTitleChange]);
+    if (!suppressFocusEntryRef.current) enterFocusMode();
+  }, [enterFocusMode]);
 
   const handleBodyFocus = useCallback(() => {
-    if (!suppressFocusEntryRef.current && !isContentFocused) {
-      captureEditorBounds();
-
-      // Ensure a title exists when focusing the body
-      try {
-        const t = titleRef.current;
-        const existing = (t?.value ?? '').replace(/\u200B/g, '').trim();
-        if (t && existing === '') {
-          t.value = 'New Blog';
-          t.parentElement?.setAttribute('data-empty', 'false');
-          try { t.style.height = 'auto'; t.style.height = `${t.scrollHeight}px`; } catch {}
-          setTitleText('New Blog');
-          onTitleChange?.('New Blog');
-        }
-      } catch {}
-
-      setIsContentFocused(true);
-    }
-  }, [captureEditorBounds, isContentFocused, onTitleChange]);
+    if (!suppressFocusEntryRef.current) enterFocusMode();
+  }, [enterFocusMode]);
 
   const handleDone = useCallback(() => {
     setIsContentFocused(false);
@@ -647,8 +588,8 @@ export const BlogEditor = ({
           position: 'fixed',
           top: 0,
           bottom: 0,
-          left: editorBounds.left,
-          right: editorBounds.right,
+          left: editorLeft,
+          right: editorRight,
           zIndex: 40,
           background: 'var(--background, #fff)',
         } : {
@@ -763,9 +704,9 @@ export const BlogEditor = ({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -48, opacity: 0 }}
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-              style={{ position: 'fixed', top: 0, left: editorBounds.left, right: editorBounds.right, zIndex: 50 }}
+              style={{ position: 'fixed', top: 0, left: editorLeft, right: editorRight, zIndex: 50 }}
             >
-              <FullscreenHeader onDone={handleDone} title={titleText} showCenteredTitle={!isContentFocused} />
+              <FullscreenHeader onDone={handleDone} title={titleText} showCenteredTitle />
             </motion.div>
           )}
         </AnimatePresence>
@@ -779,43 +720,24 @@ export const BlogEditor = ({
         />
 
         {/* ── Title editor ── */}
-        {(() => {
-          // compute editor center X relative to viewport when focused
-          const editorWidth = Math.max(0, window.innerWidth - editorBounds.left - editorBounds.right);
-          const editorCenter = editorBounds.left + editorWidth / 2;
-          return (
-            <motion.div
-              initial={false}
-              animate={{ scale: isContentFocused ? 0.48 : 1 }}
-              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-              style={{
-                overflow: 'visible',
-                flexShrink: 0,
-                display: 'flex',
-                justifyContent: 'center',
-                position: isContentFocused ? 'fixed' : 'relative',
-                top: isContentFocused ? 18 : 'auto',
-                left: isContentFocused ? (titleCenterX ? `${titleCenterX}px` : '50%') : 'auto',
-                transform: isContentFocused ? 'translateX(-50%)' : 'none',
-                zIndex: isContentFocused ? 60 : 'auto',
-              }}
-            >
-              <textarea
-                ref={titleRef}
-                className="blog-editor-title"
-                placeholder="Write a short, descriptive title..."
-                data-empty="true"
-                rows={1}
-                onKeyDown={handleTitleKeyDown}
-                onInput={handleTitleInput}
-                onPaste={handleTitlePaste}
-                draggable={false}
-                onDragStart={(e) => e.preventDefault()}
-                style={{ resize: 'none', overflow: 'hidden', width: isContentFocused ? 480 : '100%', maxWidth: '80%', transformOrigin: 'center', transition: 'width 0.18s ease, transform 0.18s ease' }}
-              />
-            </motion.div>
-          );
-        })()}
+        {!isContentFocused && (
+          <div style={{ flexShrink: 0 }}>
+            <textarea
+              ref={titleRef}
+              className="blog-editor-title"
+              placeholder="Write a short, descriptive title..."
+              data-empty="true"
+              rows={1}
+              value={titleText}
+              onKeyDown={handleTitleKeyDown}
+              onInput={handleTitleInput}
+              onPaste={handleTitlePaste}
+              draggable={false}
+              onDragStart={(e) => e.preventDefault()}
+              style={{ resize: 'none', overflow: 'hidden', width: '100%', maxWidth: '80%' }}
+            />
+          </div>
+        )}
 
         {/* ── EditorSlashMenu command palette (Cmd+/) ── */}
         <EditorSlashMenu
@@ -944,7 +866,7 @@ export const BlogEditor = ({
               }>
                 <AnyEditor
                   content={BODY_CONTENT}
-                  style={{ ...style, height: '100%' }}
+                  style={{ ...style, minHeight: '100%' }}
                   plugins={[
                     ReactMarkdownPlugin,
                     ReactCodePlugin,
