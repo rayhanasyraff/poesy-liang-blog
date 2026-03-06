@@ -50,6 +50,7 @@ import {
   type EditorSlashMenuItems,
   type EditorSlashMenuOption,
 } from '@lobehub/ui';
+import { CodeLanguageSelect } from '@lobehub/editor/react';
 import {
   Code,
   FileText,
@@ -72,6 +73,65 @@ const Editor = lazy(() =>
 const AnyEditor: any = Editor;
 const AnyLexicalComposer: any = LexicalComposer;
 const AnyBottomToolbar: any = BottomToolbar;
+
+// Inline component to render interactive code blocks
+function CodeBlockWrapper({ initialLang, initialCode, onChange }: any) {
+  const [lang, setLang] = useState(initialLang || 'text');
+  const [code, setCode] = useState(initialCode || '');
+  const [tabSize, setTabSize] = useState(2);
+  const [useTabs, setUseTabs] = useState(true);
+  const [showLineNumbers, setShowLineNumbers] = useState(true);
+
+  useEffect(() => { onChange?.(code); }, [code]);
+
+  return (
+    <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.04)' }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 8px', background: 'rgba(0,0,0,0.02)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <CodeLanguageSelect value={lang} onChange={(v: any) => setLang(v)} />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 12 }}>Tab size</span>
+            <select value={tabSize} onChange={(e) => setTabSize(Number(e.target.value))} style={{ fontSize: 12 }}>
+              <option value={2}>2</option>
+              <option value={4}>4</option>
+              <option value={8}>8</option>
+            </select>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="checkbox" checked={useTabs} onChange={(e) => setUseTabs(e.target.checked)} />
+            <span style={{ fontSize: 12 }}>Allow tabs</span>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="checkbox" checked={showLineNumbers} onChange={(e) => setShowLineNumbers(e.target.checked)} />
+            <span style={{ fontSize: 12 }}>Line numbers</span>
+          </label>
+        </div>
+
+        <div style={{ marginLeft: 'auto' }}>
+          <button
+            type="button"
+            onClick={() => navigator.clipboard.writeText(code)}
+            style={{ padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer' }}
+          >
+            Copy
+          </button>
+        </div>
+      </div>
+      <div style={{ padding: 8 }}>
+        <CodeEditor
+          language={lang}
+          value={code}
+          onValueChange={(v: string) => setCode(v)}
+          tabSize={tabSize}
+          useTabs={useTabs}
+          showLineNumbers={showLineNumbers}
+          variant="filled"
+          style={{ width: '100%' }}
+        />
+      </div>
+    </div>
+  );
+}
 
 // ── Slash menu items for EditorSlashMenu command palette ─────────────────────
 
@@ -427,8 +487,8 @@ export const BlogEditor = ({
           pre.parentElement?.insertBefore(mount, pre.nextSibling);
 
           const root = ReactDOM.createRoot(mount);
-          // render read-only CodeEditor with existing code
-          root.render(React.createElement(CodeEditor, { language: lang, value: codeText, readOnly: true, variant: 'filled', style: { width: '100%' } } as any));
+          // render interactive CodeBlockWrapper with existing code
+          root.render(React.createElement(CodeBlockWrapper, { initialLang: lang, initialCode: codeText, onChange: (newCode: string) => { try { codeEl.textContent = newCode; } catch {} } } as any));
 
           mountedRoots.set(mount, root);
           (pre as any).__codeEditorMounted = true;
