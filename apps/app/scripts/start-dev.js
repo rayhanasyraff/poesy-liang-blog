@@ -2,7 +2,6 @@
 
 import { spawn } from 'child_process';
 import net from 'net';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -50,22 +49,7 @@ async function findAvailablePort(ports) {
   return null;
 }
 
-/**
- * Read API port from the port info file
- */
-function getApiUrl() {
-  try {
-    const portFilePath = path.join(__dirname, '../../../.api-port.json');
-    if (fs.existsSync(portFilePath)) {
-      const portInfo = JSON.parse(fs.readFileSync(portFilePath, 'utf-8'));
-      console.log(`📡 Detected API running on port ${portInfo.port}`);
-      return portInfo.url;
-    }
-  } catch (error) {
-    console.warn('⚠️  Could not read API port info file. Using default.');
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-}
+
 
 /**
  * Start the Next.js dev server
@@ -87,10 +71,11 @@ async function startDevServer() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
   console.log(`🔗 Using API URL from env: ${apiUrl}`);
 
-  // Use npx to run next, and ensure PORT is set correctly
-  const nextProcess = spawn('npx', ['next', 'dev', '-p', availablePort.toString()], {
+  // Use node to run next directly, bypassing npm/npx and its override validation
+  const nextBin = path.resolve(__dirname, '../../../node_modules/next/dist/bin/next');
+  const nextProcess = spawn('node', [nextBin, 'dev', '-p', availablePort.toString()], {
     stdio: 'inherit',
-    shell: true,
+    shell: false,
     env: {
       ...process.env,
       PORT: availablePort.toString(), // Ensure PORT env var matches

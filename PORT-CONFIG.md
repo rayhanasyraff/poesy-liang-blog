@@ -4,7 +4,7 @@ This document describes how port configuration works for the API and Next.js app
 
 ## 🎯 Key Feature: Automatic Port Discovery
 
-The Next.js app automatically detects which port the API is running on! When the API starts, it writes its port information to `.api-port.json`, and the Next.js app reads this file to connect to the correct API endpoint automatically.
+Automatic port discovery has been removed. The app no longer reads `.api-port.json`; set NEXT_PUBLIC_API_URL in apps/app/.env to point to the API (e.g. NEXT_PUBLIC_API_URL=http://localhost:3001).
 
 ## Default Ports
 

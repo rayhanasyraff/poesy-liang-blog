@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { DraggableBlockPlugin_EXPERIMENTAL as DraggableBlockPlugin } from '@lexical/react/LexicalDraggableBlockPlugin';
 import {
@@ -12,9 +12,13 @@ import { useLexicalComposerContext as useLobehubContext } from '@lobehub/editor'
 import type { LexicalEditor } from 'lexical';
 import {
   $getNearestNodeFromDOMNode,
+  $getNodeByKey,
+  $getRoot,
   $getSelection,
   $isRangeSelection,
   $createParagraphNode,
+  COMMAND_PRIORITY_CRITICAL,
+  DROP_COMMAND,
 } from 'lexical';
 import { $setBlocksType } from '@lexical/selection';
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
@@ -23,7 +27,6 @@ import { $insertList } from '@lexical/list';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-/** Minimal interface for the lobehub Kernel class */
 interface KernelLike {
   getLexicalEditor(): LexicalEditor | null;
   on(event: string, handler: (editor: LexicalEditor) => void): void;
@@ -35,10 +38,60 @@ interface KernelLike {
 const MENU_CLASS = 'draggable-block-menu';
 const PICKER_CLASS = 'block-type-picker';
 
+// Must match the format used internally by DraggableBlockPlugin_EXPERIMENTAL
+const DRAG_DATA_FORMAT = 'application/x-lexical-drag-block';
+
 function isOnMenu(element: HTMLElement): boolean {
   return (
     !!element.closest(`.${MENU_CLASS}`) || !!element.closest(`.${PICKER_CLASS}`)
   );
+}
+
+// ─── getBlockElement (mirrors the plugin's internal helper) ──────────────────
+// Used by the critical-priority DROP handler to find the drop target block.
+
+function getBlockElement(
+  anchorElem: HTMLElement,
+  editor: LexicalEditor,
+  event: { clientX: number; clientY: number },
+  useEdgeAsDefault = false,
+): HTMLElement | null {
+  const anchorRect = anchorElem.getBoundingClientRect();
+  let blockElem: HTMLElement | null = null;
+
+  editor.getEditorState().read(() => {
+    const keys = $getRoot().getChildrenKeys();
+    if (keys.length === 0) return;
+
+    if (useEdgeAsDefault) {
+      const first = editor.getElementByKey(keys[0]);
+      const last = editor.getElementByKey(keys[keys.length - 1]);
+      if (first && last) {
+        if (event.clientY < first.getBoundingClientRect().top) { blockElem = first; return; }
+        if (event.clientY > last.getBoundingClientRect().bottom) { blockElem = last; return; }
+      }
+    }
+
+    for (const key of keys) {
+      const elem = editor.getElementByKey(key);
+      if (!elem) continue;
+      const style = window.getComputedStyle(elem);
+      const rect = elem.getBoundingClientRect();
+      const marginTop = parseFloat(style.marginTop) || 0;
+      const marginBottom = parseFloat(style.marginBottom) || 0;
+      if (
+        event.clientY >= rect.top - marginTop &&
+        event.clientY <= rect.bottom + marginBottom &&
+        event.clientX >= anchorRect.left &&
+        event.clientX <= anchorRect.right
+      ) {
+        blockElem = elem;
+        break;
+      }
+    }
+  });
+
+  return blockElem;
 }
 
 // ─── Block type options ────────────────────────────────────────────────────────
@@ -119,13 +172,16 @@ function BlockTypePicker({
   anchorElem,
   triggerRect,
   onClose,
+  mode,
+  hoveredElem,
 }: {
   lexicalEditor: LexicalEditor;
   anchorElem: HTMLElement;
   triggerRect: DOMRect;
   onClose: () => void;
+  mode: 'insert' | 'change' | null;
+  hoveredElem: HTMLElement | null;
 }) {
-  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -137,7 +193,6 @@ function BlockTypePicker({
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -146,7 +201,6 @@ function BlockTypePicker({
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  // Position relative to anchorElem
   const anchorRect = anchorElem.getBoundingClientRect();
   const top = triggerRect.top - anchorRect.top + anchorElem.scrollTop;
   const left = triggerRect.right - anchorRect.left + 6;
@@ -160,7 +214,58 @@ function BlockTypePicker({
           className="btp-option"
           onMouseDown={(e) => {
             e.preventDefault();
-            opt.apply(lexicalEditor);
+            if (mode === 'change') {
+              // Change type of selected block
+              opt.apply(lexicalEditor);
+              onClose();
+              return;
+            }
+
+            // Insert mode: create a new node after the hovered element (or at end)
+            lexicalEditor.update(() => {
+              const target = hoveredElem ? $getNearestNodeFromDOMNode(hoveredElem) : null;
+              let newNode: any = null;
+              switch (opt.tag) {
+                case 'P':
+                  newNode = $createParagraphNode();
+                  break;
+                case 'H1':
+                  newNode = $createHeadingNode('h1');
+                  break;
+                case 'H2':
+                  newNode = $createHeadingNode('h2');
+                  break;
+                case 'H3':
+                  newNode = $createHeadingNode('h3');
+                  break;
+                case '•':
+                case '1.':
+                  // Insert paragraph then convert to list via $insertList after selecting
+                  newNode = $createParagraphNode();
+                  break;
+                case '❝':
+                  newNode = $createQuoteNode();
+                  break;
+                case '</>':
+                  newNode = $createCodeNode();
+                  break;
+                default:
+                  newNode = $createParagraphNode();
+              }
+
+              if (target && newNode) {
+                target.insertAfter(newNode);
+                newNode.selectStart();
+                if (opt.tag === '•') $insertList('bullet');
+                if (opt.tag === '1.') $insertList('number');
+              } else if (newNode) {
+                $getRoot().append(newNode);
+                newNode.selectStart();
+                if (opt.tag === '•') $insertList('bullet');
+                if (opt.tag === '1.') $insertList('number');
+              }
+            });
+
             onClose();
           }}
         >
@@ -172,6 +277,7 @@ function BlockTypePicker({
     anchorElem,
   );
 }
+
 
 // ─── Drag-handle icon ─────────────────────────────────────────────────────────
 
@@ -190,42 +296,21 @@ function GripIcon() {
 
 // ─── Context bridge ───────────────────────────────────────────────────────────
 //
-// The lobehub editor context holds a `Kernel` wrapper, not a raw LexicalEditor.
-// `DraggableBlockPlugin_EXPERIMENTAL` calls useLexicalComposerContext() from
-// @lexical/react, which reads a completely different React context object.
-//
-// This bridge:
-//   1. Reads the lobehub context to get the Kernel
-//   2. Waits for Kernel.getLexicalEditor() to be non-null (fires after 'initialized')
-//   3. Re-provides the raw LexicalEditor via @lexical/react's LexicalComposerContext
+// @lobehub/editor provides its own LexicalComposerContext (holds a Kernel, not
+// a raw LexicalEditor). @lexical/react plugins read a *different* context object.
+// This bridge reads the Kernel, waits for the real editor to initialise, then
+// re-provides it via @lexical/react's LexicalComposerContext.
 
-function LexicalContextBridge({
-  children,
-  onReady,
-}: {
-  children: ReactNode;
-  onReady?: (editor: LexicalEditor) => void;
-}) {
+function LexicalContextBridge({ children }: { children: React.ReactNode }) {
   const lobehubContext = useLobehubContext();
   const kernel = Array.isArray(lobehubContext) ? (lobehubContext[0] as KernelLike) : null;
   const [lexicalEditor, setLexicalEditor] = useState<LexicalEditor | null>(null);
 
   useEffect(() => {
     if (!kernel || typeof kernel.getLexicalEditor !== 'function') return;
-
-    const activate = (editor: LexicalEditor) => {
-      setLexicalEditor(editor);
-      onReady?.(editor);
-    };
-
-    // Already initialized (e.g. hot reload)
+    const activate = (editor: LexicalEditor) => setLexicalEditor(editor);
     const existing = kernel.getLexicalEditor();
-    if (existing) {
-      activate(existing);
-      return;
-    }
-
-    // Wait for the editor to mount its root DOM element
+    if (existing) { activate(existing); return; }
     kernel.on('initialized', activate);
     return () => { kernel.off('initialized', activate); };
   }, [kernel]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -244,46 +329,136 @@ function LexicalContextBridge({
   );
 }
 
-// ─── Inner plugin (inside @lexical/react context provided by bridge) ──────────
+// ─── Inner plugin ─────────────────────────────────────────────────────────────
+//
+// Uses DraggableBlockPlugin_EXPERIMENTAL for all mouse-tracking, handle
+// positioning, DRAGOVER visual feedback (target line), and drag state management.
+//
+// The only addition: a COMMAND_PRIORITY_CRITICAL DROP_COMMAND handler.
+// LobeHub's upload plugin registers DROP_COMMAND at COMMAND_PRIORITY_HIGH and
+// unconditionally returns `true`, which blocks the Lexical plugin's own HIGH-
+// priority drop handler from ever running. We intercept at CRITICAL (one level
+// above) so the node reorder fires before LobeHub's handler can swallow the event.
 
 function DraggablePluginInner() {
-  const [lexicalEditor] = useLexicalComposerContext(); // raw LexicalEditor via bridge
+  const [lexicalEditor] = useLexicalComposerContext();
 
-  // Debug: expose lexicalEditor for troubleshooting
-  // eslint-disable-next-line no-console
-  console.debug('DraggablePluginInner lexicalEditor', lexicalEditor);
-
-  const menuRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const plusRef = useRef<HTMLButtonElement | null>(null);
   const targetLineRef = useRef<HTMLDivElement>(null);
   const [anchorElem, setAnchorElem] = useState<HTMLElement | null>(null);
   const [pickerRect, setPickerRect] = useState<DOMRect | null>(null);
+  const [pickerMode, setPickerMode] = useState<'insert' | 'change' | null>(null);
 
-  // Ref-tracked hovered block (no re-render on hover)
   const hoveredElemRef = useRef<HTMLElement | null>(null);
-  const handleElementChanged = useCallback((elem: HTMLElement | null) => {
-    hoveredElemRef.current = elem;
-  }, []);
 
-  // Resolve anchor element: the contenteditable's parent with position:relative
+  // Set up anchorElem and add left padding to the contenteditable so text
+  // doesn't overlap the drag handle (handle is ~24 px wide at 4 px from left).
   useEffect(() => {
     const rootElem = lexicalEditor.getRootElement();
-    // eslint-disable-next-line no-console
-    console.debug('DraggablePlugin: rootElem =', rootElem);
     const parent = rootElem?.parentElement ?? document.body;
-    // eslint-disable-next-line no-console
-    console.debug('DraggablePlugin: resolved parent =', parent, 'position=', getComputedStyle(parent).position);
     if (getComputedStyle(parent).position === 'static') {
-      // eslint-disable-next-line no-console
-      console.debug('DraggablePlugin: setting parent.style.position = "relative" on', parent);
       parent.style.position = 'relative';
     }
+    // Ensure editor content doesn't sit under the handle group: add left padding.
+    // Store existing padding to restore on cleanup.
+    let prevPaddingLeft: string | null = null;
+    if (rootElem) {
+      prevPaddingLeft = rootElem.style.paddingLeft || '';
+      // 32px gives room for the plus + grip; adjust if needed.
+      rootElem.style.paddingLeft = '24px';
+    }
+
     setAnchorElem(parent);
-    // eslint-disable-next-line no-console
-    console.debug('DraggablePlugin: anchorElem set', parent);
+    return () => {
+      if (rootElem && prevPaddingLeft !== null) rootElem.style.paddingLeft = prevPaddingLeft;
+    };
   }, [lexicalEditor]);
 
-  // Click drag handle → select the hovered block + open block-type picker (toggle)
-  const handleMenuClick = useCallback(
+  // CRITICAL-priority DROP_COMMAND handler.
+  // Runs before LobeHub's HIGH-priority upload handler so our block reorder
+  // is not silently swallowed when no files are in the transfer.
+  //
+  // We identify block drags via dataTransfer.types (always readable, even in
+  // protected mode) rather than a dragstart-tracked ref, because Chromium
+  // restricts getData() during the dragstart event on some versions.
+  useEffect(() => {
+    if (!anchorElem) return;
+
+    return lexicalEditor.registerCommand<DragEvent>(
+      DROP_COMMAND,
+      (event) => {
+        // Only handle block drags — check types list (readable during drop).
+        const isBlockDrag = event.dataTransfer?.types.includes(DRAG_DATA_FORMAT) ?? false;
+        if (!isBlockDrag) return false;
+
+        const nodeKey = event.dataTransfer?.getData(DRAG_DATA_FORMAT) ?? '';
+        if (!nodeKey) return false;
+        if ((event.dataTransfer?.files.length ?? 0) > 0) return false;
+
+        const targetBlock = getBlockElement(anchorElem, lexicalEditor, event, true);
+        if (!targetBlock) return false;
+
+        event.preventDefault();
+
+        // Command handlers run inside updateEditorSync — no editor.update() needed.
+        const draggedNode = $getNodeByKey(nodeKey);
+        const targetNode = $getNearestNodeFromDOMNode(targetBlock);
+        if (!draggedNode || !targetNode || targetNode === draggedNode) return true;
+
+        const targetTop = targetBlock.getBoundingClientRect().top;
+        if (event.clientY >= targetTop) {
+          targetNode.insertAfter(draggedNode);
+        } else {
+          targetNode.insertBefore(draggedNode);
+        }
+
+        const droppedKey = nodeKey;
+        requestAnimationFrame(() => {
+          lexicalEditor.update(
+            () => {
+              const node = $getNodeByKey(droppedKey);
+              if (node) node.selectEnd();
+            },
+            {
+              discrete: true,
+              onUpdate: () => {
+                // Focus via the DOM element directly, AFTER the selection has
+                // been committed to the DOM by the discrete update above.
+                // Calling lexicalEditor.focus() instead would schedule its own
+                // internal async Lexical update, which can race with (and
+                // overwrite) the selection we just set, causing the caret to
+                // disappear. Going through getRootElement().focus() bypasses
+                // that internal update cycle entirely.
+                lexicalEditor.getRootElement()?.focus({ preventScroll: true });
+              },
+            },
+          );
+        });
+
+        // The plugin's own HIGH-priority DROP handler (which we are blocking)
+        // normally hides the handle and target line after a successful drop.
+        // Replicate that cleanup here so the handle doesn't linger at its old
+        // position until the user moves the mouse again.
+        const menu = menuRef.current;
+        const line = targetLineRef.current;
+        if (menu) {
+          menu.style.opacity = '0';
+          menu.style.transform = 'translate(-10000px, -10000px)';
+        }
+        if (line) {
+          line.style.opacity = '0';
+          line.style.transform = 'translate(-10000px, -10000px)';
+        }
+
+        return true; // prevent LobeHub's HIGH handler from running
+      },
+      COMMAND_PRIORITY_CRITICAL,
+    );
+  }, [anchorElem, lexicalEditor]);
+
+  // Plus click: select hovered block and open the block-type picker.
+  const handlePlusClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
@@ -292,10 +467,40 @@ function DraggablePluginInner() {
 
       if (pickerRect) {
         setPickerRect(null);
+        setPickerMode(null);
         return;
       }
 
-      // Select the hovered block so block-type transforms apply to it
+      const hoveredElem = hoveredElemRef.current;
+      if (hoveredElem) {
+        lexicalEditor.update(() => {
+          const node = $getNearestNodeFromDOMNode(hoveredElem);
+          if (node) node.selectStart();
+        });
+      }
+
+      const btn = plusRef.current ?? menuRef.current;
+      if (btn) {
+        setPickerMode('insert');
+        setPickerRect(btn.getBoundingClientRect());
+      }
+    },
+    [anchorElem, lexicalEditor, pickerRect],
+  );
+
+  // Grip click: open picker to change block type
+  const handleGripClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!anchorElem) return;
+
+      if (pickerRect) {
+        setPickerRect(null);
+        setPickerMode(null);
+        return;
+      }
+
       const hoveredElem = hoveredElemRef.current;
       if (hoveredElem) {
         lexicalEditor.update(() => {
@@ -305,12 +510,73 @@ function DraggablePluginInner() {
       }
 
       const btn = menuRef.current;
-      if (btn) setPickerRect(btn.getBoundingClientRect());
+      if (btn) {
+        setPickerMode('change');
+        setPickerRect(btn.getBoundingClientRect());
+      }
     },
     [anchorElem, lexicalEditor, pickerRect],
   );
 
   if (!anchorElem) return null;
+
+  // Grouped handle + plus component to avoid DOM conflicts with editor content.
+  function HandleGroup() {
+    return (
+      <div
+        ref={menuRef}
+        className={MENU_CLASS}
+        title="Drag to reorder"
+        style={{ display: 'flex', alignItems: 'center', gap: 2 }}
+        aria-hidden={false}
+      >
+        {/* Plus button: opens the block-type picker. */}
+        <button
+          type="button"
+          ref={plusRef}
+          className="draggable-block-plus"
+          title="Insert / Change block type"
+          onMouseDown={handlePlusClick}
+          style={{
+            width: 18,
+            height: 18,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 4,
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+
+        {/* Grip icon: only used for dragging; clicking it does nothing. */}
+        <button
+          type="button"
+          aria-hidden="true"
+          className="grip-button"
+          title="Drag to reorder"
+          onClick={handleGripClick}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: 'none',
+            background: 'transparent',
+            padding: 2,
+            cursor: 'grab',
+          }}
+        >
+          <GripIcon />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -318,22 +584,12 @@ function DraggablePluginInner() {
         anchorElem={anchorElem}
         menuRef={menuRef}
         targetLineRef={targetLineRef}
-        menuComponent={
-          <button
-            type="button"
-            ref={menuRef}
-            className={MENU_CLASS}
-            title="Drag to reorder · Click to change block type"
-            onClick={handleMenuClick}
-          >
-            <GripIcon />
-          </button>
-        }
+        menuComponent={<HandleGroup />}
         targetLineComponent={
           <div ref={targetLineRef} className="draggable-block-target-line" />
         }
         isOnMenu={isOnMenu}
-        onElementChanged={handleElementChanged}
+        onElementChanged={(elem) => { hoveredElemRef.current = elem; }}
       />
 
       {pickerRect && (
@@ -341,7 +597,9 @@ function DraggablePluginInner() {
           lexicalEditor={lexicalEditor}
           anchorElem={anchorElem}
           triggerRect={pickerRect}
-          onClose={() => setPickerRect(null)}
+          onClose={() => { setPickerRect(null); setPickerMode(null); }}
+          mode={pickerMode}
+          hoveredElem={hoveredElemRef.current}
         />
       )}
     </>

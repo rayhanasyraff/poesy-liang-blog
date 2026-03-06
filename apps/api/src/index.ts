@@ -5,7 +5,7 @@ import migrationRoutes from "./routes/migrationRoutes";
 import { corsMiddleware } from "./middlewares/cors";
 import { config } from "./config/config";
 import { Server } from "http";
-import { writePortInfo } from "./utils/port-manager";
+
 
 let PORT = config.port;
 
@@ -43,7 +43,6 @@ async function startServer(port: number, fallbackPorts: number[] = []): Promise<
     const server = app.listen(port)
       .on('listening', () => {
         console.log(`🚀 Blog API Server running at http://localhost:${port}`);
-        writePortInfo(port);
         resolve();
       })
       .on('error', async (err: NodeJS.ErrnoException) => {
