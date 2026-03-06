@@ -757,9 +757,9 @@ export const BlogEditor = ({
         {/* ── Title editor ── */}
         <motion.div
           initial={false}
-          animate={{ scale: isContentFocused ? 0.48 : 1, y: isContentFocused ? 6 : 0 }}
+          animate={{ scale: isContentFocused ? 0.48 : 1 }}
           transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-          style={{ overflow: 'visible', flexShrink: 0, display: 'flex', justifyContent: isContentFocused ? 'center' : 'flex-start', position: isContentFocused ? 'fixed' : 'relative', top: isContentFocused ? 12 : 'auto', left: isContentFocused ? '50%' : 'auto', transform: isContentFocused ? 'translateX(-50%)' : 'none', zIndex: isContentFocused ? 60 : 'auto' }}
+          style={{ overflow: 'visible', flexShrink: 0, display: 'flex', justifyContent: 'center', position: isContentFocused ? 'fixed' : 'relative', top: isContentFocused ? 24 : 'auto', left: isContentFocused ? '50%' : 'auto', transform: isContentFocused ? 'translate(-50%, -50%)' : 'none', zIndex: isContentFocused ? 60 : 'auto' }}
         >
           <textarea
             ref={titleRef}
