@@ -741,7 +741,7 @@ export const BlogEditor = ({
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
               style={{ position: 'fixed', top: 0, left: editorBounds.left, right: editorBounds.right, zIndex: 50 }}
             >
-              <FullscreenHeader onDone={handleDone} title={titleText} />
+              <FullscreenHeader onDone={handleDone} title={titleText} showCenteredTitle={!isContentFocused} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -757,9 +757,9 @@ export const BlogEditor = ({
         {/* ── Title editor ── */}
         <motion.div
           initial={false}
-          animate={{ height: isContentFocused ? 0 : 'auto', opacity: isContentFocused ? 0 : 1 }}
-          transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-          style={{ overflow: 'hidden', flexShrink: 0 }}
+          animate={{ scale: isContentFocused ? 0.48 : 1, y: isContentFocused ? 6 : 0 }}
+          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+          style={{ overflow: 'visible', flexShrink: 0, display: 'flex', justifyContent: isContentFocused ? 'center' : 'flex-start', position: isContentFocused ? 'fixed' : 'relative', top: isContentFocused ? 12 : 'auto', left: isContentFocused ? '50%' : 'auto', transform: isContentFocused ? 'translateX(-50%)' : 'none', zIndex: isContentFocused ? 60 : 'auto' }}
         >
           <textarea
             ref={titleRef}
@@ -772,7 +772,7 @@ export const BlogEditor = ({
             onPaste={handleTitlePaste}
             draggable={false}
             onDragStart={(e) => e.preventDefault()}
-            style={{ resize: 'none', overflow: 'hidden' }}
+            style={{ resize: 'none', overflow: 'hidden', width: isContentFocused ? '60%' : '100%', transformOrigin: 'center', transition: 'width 0.18s ease' }}
           />
         </motion.div>
 
