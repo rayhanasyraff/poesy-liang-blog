@@ -276,6 +276,7 @@ export const BlogEditor = ({
   const [markdownContent, setMarkdownContent] = useState('');
   const [jsonContent, setJsonContent] = useState('');
   const [diffOldContent, setDiffOldContent] = useState('');
+  const [titleText, setTitleText] = useState('');
 
   // EditorSlashMenu command palette
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -333,16 +334,44 @@ export const BlogEditor = ({
   const handleBodyPointerDown = useCallback(() => {
     if (!isContentFocused) {
       captureEditorBounds();
+
+      // If title is empty when entering editor, default to "New Blog"
+      try {
+        const t = titleRef.current;
+        const existing = (t?.value ?? '').replace(/\u200B/g, '').trim();
+        if (t && existing === '') {
+          t.value = 'New Blog';
+          t.parentElement?.setAttribute('data-empty', 'false');
+          try { t.style.height = 'auto'; t.style.height = `${t.scrollHeight}px`; } catch {}
+          setTitleText('New Blog');
+          onTitleChange?.('New Blog');
+        }
+      } catch {}
+
       setIsContentFocused(true);
     }
-  }, [captureEditorBounds, isContentFocused]);
+  }, [captureEditorBounds, isContentFocused, onTitleChange]);
 
   const handleBodyFocus = useCallback(() => {
     if (!suppressFocusEntryRef.current && !isContentFocused) {
       captureEditorBounds();
+
+      // Ensure a title exists when focusing the body
+      try {
+        const t = titleRef.current;
+        const existing = (t?.value ?? '').replace(/\u200B/g, '').trim();
+        if (t && existing === '') {
+          t.value = 'New Blog';
+          t.parentElement?.setAttribute('data-empty', 'false');
+          try { t.style.height = 'auto'; t.style.height = `${t.scrollHeight}px`; } catch {}
+          setTitleText('New Blog');
+          onTitleChange?.('New Blog');
+        }
+      } catch {}
+
       setIsContentFocused(true);
     }
-  }, [captureEditorBounds, isContentFocused]);
+  }, [captureEditorBounds, isContentFocused, onTitleChange]);
 
   const handleDone = useCallback(() => {
     setIsContentFocused(false);
@@ -455,6 +484,7 @@ export const BlogEditor = ({
     } catch {}
     const text = (el.value ?? '').replace(/\u200B/g, '').trim();
     el.parentElement?.setAttribute('data-empty', text === '' ? 'true' : 'false');
+    setTitleText(text);
     onTitleChange?.(text);
   }, [onTitleChange]);
 
@@ -711,7 +741,7 @@ export const BlogEditor = ({
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
               style={{ position: 'fixed', top: 0, left: editorBounds.left, right: editorBounds.right, zIndex: 50 }}
             >
-              <FullscreenHeader onDone={handleDone} />
+              <FullscreenHeader onDone={handleDone} title={titleText} />
             </motion.div>
           )}
         </AnimatePresence>
