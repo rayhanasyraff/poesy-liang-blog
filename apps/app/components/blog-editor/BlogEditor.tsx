@@ -287,6 +287,7 @@ export const BlogEditor = ({
   const suppressFocusEntryRef = useRef(false);
 
   const [editorBounds, setEditorBounds] = useState({ left: 0, right: 0 });
+  const [titleCenterX, setTitleCenterX] = useState<number | null>(null);
 
   const captureEditorBounds = useCallback(() => {
     const root = rootRef.current;
@@ -335,6 +336,15 @@ export const BlogEditor = ({
     if (!isContentFocused) {
       captureEditorBounds();
 
+      // compute and store title center X synchronously to avoid jitter
+      try {
+        const root = rootRef.current;
+        if (root) {
+          const r = root.getBoundingClientRect();
+          setTitleCenterX(r.left + r.width / 2);
+        }
+      } catch {}
+
       // If title is empty when entering editor, default to "New Blog"
       try {
         const t = titleRef.current;
@@ -355,6 +365,15 @@ export const BlogEditor = ({
   const handleBodyFocus = useCallback(() => {
     if (!suppressFocusEntryRef.current && !isContentFocused) {
       captureEditorBounds();
+
+      // compute and store title center X synchronously to avoid jitter
+      try {
+        const root = rootRef.current;
+        if (root) {
+          const r = root.getBoundingClientRect();
+          setTitleCenterX(r.left + r.width / 2);
+        }
+      } catch {}
 
       // Ensure a title exists when focusing the body
       try {
@@ -770,9 +789,9 @@ export const BlogEditor = ({
                 display: 'flex',
                 justifyContent: 'center',
                 position: isContentFocused ? 'fixed' : 'relative',
-                top: isContentFocused ? 24 : 'auto',
-                left: isContentFocused ? editorCenter : 'auto',
-                transform: isContentFocused ? 'translateX(-50%) translateY(-50%)' : 'none',
+                top: isContentFocused ? 18 : 'auto',
+                left: isContentFocused ? (titleCenterX ? `${titleCenterX}px` : '50%') : 'auto',
+                transform: isContentFocused ? 'translateX(-50%)' : 'none',
                 zIndex: isContentFocused ? 60 : 'auto',
               }}
             >
@@ -787,7 +806,7 @@ export const BlogEditor = ({
                 onPaste={handleTitlePaste}
                 draggable={false}
                 onDragStart={(e) => e.preventDefault()}
-                style={{ resize: 'none', overflow: 'hidden', width: isContentFocused ? '60%' : '100%', transformOrigin: 'center', transition: 'width 0.18s ease' }}
+                style={{ resize: 'none', overflow: 'hidden', width: isContentFocused ? 480 : '100%', maxWidth: '80%', transformOrigin: 'center', transition: 'width 0.18s ease, transform 0.18s ease' }}
               />
             </motion.div>
           );
