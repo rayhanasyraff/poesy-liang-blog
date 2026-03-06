@@ -1,6 +1,7 @@
 'use client';
 
 import React, { lazy, Suspense, useRef, useCallback, useEffect, useState } from 'react';
+import ReactDOM from 'react-dom/client';
 import { $convertToMarkdownString, $convertFromMarkdownString, TRANSFORMERS } from '@lexical/markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FullscreenHeader } from './FullscreenHeader';
@@ -397,6 +398,63 @@ export const BlogEditor = ({
     }
     return () => unregister?.();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Render code blocks inside editor using CodeEditor from @lobehub/ui ─────
+  useEffect(() => {
+    const container = bodyWrapperRef.current;
+    if (!container) return;
+
+    const mountedRoots = new Map<Element, ReturnType<typeof ReactDOM.createRoot>>();
+
+    const transform = () => {
+      const nodes = Array.from(container.querySelectorAll('pre code, pre[class*="language-"]')) as HTMLElement[];
+      nodes.forEach((codeEl) => {
+        const pre = codeEl.closest('pre') ?? codeEl;
+        if ((pre as any).__codeEditorMounted) return;
+        try {
+          const codeText = codeEl.textContent ?? '';
+          const languageMatch = (pre.className || codeEl.className || '').match(/language-(\w+)/);
+          const lang = languageMatch ? languageMatch[1] : 'text';
+
+          // hide original pre
+          (pre as HTMLElement).style.display = 'none';
+
+          // insert mount node
+          const mount = document.createElement('div');
+          mount.setAttribute('data-code-editor-mount', '');
+          mount.style.width = '100%';
+          mount.style.boxSizing = 'border-box';
+          pre.parentElement?.insertBefore(mount, pre.nextSibling);
+
+          const root = ReactDOM.createRoot(mount);
+          // render read-only CodeEditor with existing code
+          root.render(React.createElement(CodeEditor, { language: lang, value: codeText, readOnly: true, variant: 'filled', style: { width: '100%' } } as any));
+
+          mountedRoots.set(mount, root);
+          (pre as any).__codeEditorMounted = true;
+        } catch (e) {
+          // ignore
+        }
+      });
+    };
+
+    const mo = new MutationObserver(() => transform());
+    mo.observe(container, { childList: true, subtree: true, characterData: true });
+
+    // initial transform
+    transform();
+
+    return () => {
+      mo.disconnect();
+      mountedRoots.forEach((root, mount) => {
+        try { root.unmount(); } catch {}
+        try { (mount as Element).remove(); } catch {}
+      });
+      mountedRoots.clear();
+      // restore any hidden pre elements
+      Array.from(container.querySelectorAll('pre')).forEach((p) => { (p as HTMLElement).style.display = ''; (p as any).__codeEditorMounted = false; });
+    };
+  }, [isContentFocused]); // runs when editor focus changes
 
   // ── Pencil → Lexical sync ────────────────────────────────────────────────
 
