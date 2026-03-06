@@ -307,7 +307,30 @@ export const BlogEditor = ({
     const ro = new ResizeObserver(measure);
     ro.observe(document.documentElement);
     window.addEventListener('resize', measure);
+
+    // After header mounts, compute header center X to precisely align title
+    const computeHeaderCenter = () => {
+      try {
+        const el = document.querySelector('[data-fullscreen-header-inner]') as HTMLElement | null;
+        if (el) {
+          const hr = el.getBoundingClientRect();
+          setTitleCenterX(hr.left + hr.width / 2);
+          return;
+        }
+      } catch {}
+
+      // fallback to parent center
+      try {
+        const r = parent.getBoundingClientRect();
+        setTitleCenterX(r.left + r.width / 2);
+      } catch {}
+    };
+
+    // run after a short delay so header has mounted
+    const t = setTimeout(computeHeaderCenter, 40);
+
     return () => {
+      clearTimeout(t);
       ro.disconnect();
       window.removeEventListener('resize', measure);
     };
@@ -336,15 +359,6 @@ export const BlogEditor = ({
     if (!isContentFocused) {
       captureEditorBounds();
 
-      // compute and store title center X synchronously to avoid jitter
-      try {
-        const root = rootRef.current;
-        if (root) {
-          const r = root.getBoundingClientRect();
-          setTitleCenterX(r.left + r.width / 2);
-        }
-      } catch {}
-
       // If title is empty when entering editor, default to "New Blog"
       try {
         const t = titleRef.current;
@@ -365,15 +379,6 @@ export const BlogEditor = ({
   const handleBodyFocus = useCallback(() => {
     if (!suppressFocusEntryRef.current && !isContentFocused) {
       captureEditorBounds();
-
-      // compute and store title center X synchronously to avoid jitter
-      try {
-        const root = rootRef.current;
-        if (root) {
-          const r = root.getBoundingClientRect();
-          setTitleCenterX(r.left + r.width / 2);
-        }
-      } catch {}
 
       // Ensure a title exists when focusing the body
       try {

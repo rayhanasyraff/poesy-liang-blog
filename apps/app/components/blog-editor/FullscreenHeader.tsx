@@ -23,6 +23,7 @@ export function FullscreenHeader({ onDone, title, showCenteredTitle = true }: Re
       }}
     >
       <div
+        data-fullscreen-header-inner
         style={{
           display: 'flex',
           alignItems: 'center',
