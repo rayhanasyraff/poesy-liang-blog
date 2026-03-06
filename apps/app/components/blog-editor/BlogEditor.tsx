@@ -755,26 +755,43 @@ export const BlogEditor = ({
         />
 
         {/* ── Title editor ── */}
-        <motion.div
-          initial={false}
-          animate={{ scale: isContentFocused ? 0.48 : 1 }}
-          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-          style={{ overflow: 'visible', flexShrink: 0, display: 'flex', justifyContent: 'center', position: isContentFocused ? 'fixed' : 'relative', top: isContentFocused ? 24 : 'auto', left: isContentFocused ? '50%' : 'auto', transform: isContentFocused ? 'translate(-50%, -50%)' : 'none', zIndex: isContentFocused ? 60 : 'auto' }}
-        >
-          <textarea
-            ref={titleRef}
-            className="blog-editor-title"
-            placeholder="Write a short, descriptive title..."
-            data-empty="true"
-            rows={1}
-            onKeyDown={handleTitleKeyDown}
-            onInput={handleTitleInput}
-            onPaste={handleTitlePaste}
-            draggable={false}
-            onDragStart={(e) => e.preventDefault()}
-            style={{ resize: 'none', overflow: 'hidden', width: isContentFocused ? '60%' : '100%', transformOrigin: 'center', transition: 'width 0.18s ease' }}
-          />
-        </motion.div>
+        {(() => {
+          // compute editor center X relative to viewport when focused
+          const editorWidth = Math.max(0, window.innerWidth - editorBounds.left - editorBounds.right);
+          const editorCenter = editorBounds.left + editorWidth / 2;
+          return (
+            <motion.div
+              initial={false}
+              animate={{ scale: isContentFocused ? 0.48 : 1 }}
+              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+              style={{
+                overflow: 'visible',
+                flexShrink: 0,
+                display: 'flex',
+                justifyContent: 'center',
+                position: isContentFocused ? 'fixed' : 'relative',
+                top: isContentFocused ? 24 : 'auto',
+                left: isContentFocused ? editorCenter : 'auto',
+                transform: isContentFocused ? 'translateX(-50%) translateY(-50%)' : 'none',
+                zIndex: isContentFocused ? 60 : 'auto',
+              }}
+            >
+              <textarea
+                ref={titleRef}
+                className="blog-editor-title"
+                placeholder="Write a short, descriptive title..."
+                data-empty="true"
+                rows={1}
+                onKeyDown={handleTitleKeyDown}
+                onInput={handleTitleInput}
+                onPaste={handleTitlePaste}
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
+                style={{ resize: 'none', overflow: 'hidden', width: isContentFocused ? '60%' : '100%', transformOrigin: 'center', transition: 'width 0.18s ease' }}
+              />
+            </motion.div>
+          );
+        })()}
 
         {/* ── EditorSlashMenu command palette (Cmd+/) ── */}
         <EditorSlashMenu
