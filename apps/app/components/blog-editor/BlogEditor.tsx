@@ -684,6 +684,30 @@ export const BlogEditor = ({
           @media (prefers-color-scheme: dark) {
             .block-type-picker { background: #1f1f1f; border-color: rgba(255,255,255,.12); }
           }
+
+          /* Code block visibility: ensure pre/code contrasts with editor background */
+          .blog-editor-root pre,
+          .blog-editor-root code,
+          .blog-editor-root .lexical-code,
+          .blog-editor-root .kg-code,
+          .blog-editor-root pre[class*="language-"] {
+            background: rgba(0,0,0,0.04);
+            color: inherit;
+            padding: 12px;
+            border-radius: 8px;
+            overflow: auto;
+            box-shadow: none;
+          }
+          @media (prefers-color-scheme: dark) {
+            .blog-editor-root pre,
+            .blog-editor-root code,
+            .blog-editor-root .lexical-code,
+            .blog-editor-root .kg-code,
+            .blog-editor-root pre[class*="language-"] {
+              background: rgba(255,255,255,0.04);
+            }
+          }
+
           .btp-option {
             display: flex; align-items: center; gap: 10px; width: 100%;
             padding: 6px 10px; border: none; background: transparent;
