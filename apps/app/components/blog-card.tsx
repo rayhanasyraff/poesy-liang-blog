@@ -79,63 +79,44 @@ export const BlogCard = ({ blog }: BlogCardProps) => {
           </p>
         )}
       </header>
-      <footer className="mt-1 flex items-center space-x-2 font-mono text-sm uppercase tracking-wider opacity-50 dark:opacity-40">
-        <time dateTime={blog.metadata.publishedAt}>
-          {formatDate(blog.metadata.publishedAt)}
-        </time>
-        <span>·</span>
-        <span>{blog.readingTime} MIN READ</span>
+      <footer className="mt-1 flex items-center justify-between font-mono text-sm uppercase tracking-wider opacity-50 dark:opacity-40">
+        <div className="flex items-center space-x-3 text-gray-600 dark:text-gray-400">
+          <div title={visibility === 'private' ? 'Private' : 'Public'} aria-label={`visibility-${visibility}`}>
+            {visibility === 'private' ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+          </div>
 
-        {isAdmin && (
-          <>
-            <span>·</span>
-
-            <span className={`px-1 rounded text-xs font-medium ${status === 'draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-              {status.toUpperCase()}
+          <div className="flex items-center space-x-2">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${status === 'draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+              {status === 'draft' ? 'Draft' : 'Published'}
             </span>
+            {version && <span className="text-xs text-neutral-600 dark:text-neutral-400">v{version}</span>}
+          </div>
 
-            {version && <span className="ml-1 text-xs tracking-normal">v{version}</span>}
-
-            <span className="ml-1 text-xs tracking-normal">{visibility === 'private' ? 'Private' : 'Public'}</span>
-
-            <span className="ml-2 inline-flex items-center space-x-1">
-              {commentOpen ? (
-                <MessageSquare className="w-4 h-4" />
-              ) : (
-                <>
-                  <MessageSquare className="w-4 h-4 opacity-40" />
-                  <X className="w-3 h-3 text-red-500" />
-                </>
-              )}
+          <div className="flex items-center space-x-3 ml-2">
+            <div title={commentOpen ? `${comments} comments` : 'Comments disabled'} className="flex items-center space-x-1">
+              {commentOpen ? <MessageSquare className="w-4 h-4" /> : <MessageSquare className="w-4 h-4 opacity-40" />}
               <span className="text-xs">{commentOpen ? comments : 'off'}</span>
-            </span>
+            </div>
 
-            <span className="ml-2 inline-flex items-center space-x-1">
-              {likeOpen ? (
-                <Heart className="w-4 h-4 text-pink-600" />
-              ) : (
-                <>
-                  <Heart className="w-4 h-4 opacity-40" />
-                  <X className="w-3 h-3 text-red-500" />
-                </>
-              )}
+            <div title={likeOpen ? `${likes} likes` : 'Likes disabled'} className="flex items-center space-x-1">
+              {likeOpen ? <Heart className="w-4 h-4 text-pink-600" /> : <Heart className="w-4 h-4 opacity-40" />}
               <span className="text-xs">{likeOpen ? likes : 'off'}</span>
-            </span>
+            </div>
 
-            <span className="ml-2 inline-flex items-center space-x-1">
-              {viewOpen ? (
-                <Eye className="w-4 h-4" />
-              ) : (
-                <>
-                  <Eye className="w-4 h-4 opacity-40" />
-                  <X className="w-3 h-3 text-red-500" />
-                </>
-              )}
+            <div title={viewOpen ? `${views} views` : 'Views disabled'} className="flex items-center space-x-1">
+              {viewOpen ? <Eye className="w-4 h-4" /> : <Eye className="w-4 h-4 opacity-40" />}
               <span className="text-xs">{viewOpen ? views : 'off'}</span>
-            </span>
-          </>
-        )}
+            </div>
+          </div>
+        </div>
 
+        <div className="flex items-center space-x-2">
+          <time dateTime={blog.metadata.publishedAt} className="text-xs text-neutral-600 dark:text-neutral-400">
+            {formatDate(blog.metadata.publishedAt)}
+          </time>
+          <span>·</span>
+          <span className="text-xs">{blog.readingTime} MIN READ</span>
+        </div>
       </footer>
     </article>
   );
