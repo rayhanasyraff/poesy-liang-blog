@@ -91,7 +91,19 @@ export async function saveDraft(
         draft_saved_at: now,
       };
       console.info(`[versioningService] Updating draft for blog ${blogId}, version ${latest.version_number}`, { payload });
-      await apiRequest(`/blogs/${blogId}/versions/${latest.id}`, 'PUT', payload);
+      try {
+        await apiRequest(`/blogs/${blogId}/versions/${latest.id}`, 'PUT', payload);
+      } catch (err: any) {
+        const upstreamMsg = err && (err.body && (err.body.message || err.body.error)) || err && err.message || '';
+        if (typeof upstreamMsg === 'string' && upstreamMsg.includes("Unknown column 'draft_saved_at'")) {
+          const retryPayload = { ...payload };
+          delete (retryPayload as any).draft_saved_at;
+          console.warn(`[versioningService] Upstream schema missing 'draft_saved_at'; retrying update without it.`, { retryPayload, originalError: err });
+          await apiRequest(`/blogs/${blogId}/versions/${latest.id}`, 'PUT', retryPayload);
+        } else {
+          throw err;
+        }
+      }
       return { id: latest.id, version_number: latest.version_number };
     }
 
@@ -110,13 +122,30 @@ export async function saveDraft(
       created_at: now,
     };
     console.info(`[versioningService] Creating new draft for blog ${blogId}`, { payload });
-    const resp = await apiRequest<{ success: boolean; id: number; version_number: number }>(
-      `/blogs/${blogId}/versions`,
-      'POST',
-      payload
-    );
-    console.info(`[versioningService] Created draft id=${resp.id} version=${resp.version_number} for blog ${blogId}`);
-    return { id: resp.id, version_number: resp.version_number };
+    try {
+      const resp = await apiRequest<{ success: boolean; id: number; version_number: number }>(
+        `/blogs/${blogId}/versions`,
+        'POST',
+        payload
+      );
+      console.info(`[versioningService] Created draft id=${resp.id} version=${resp.version_number} for blog ${blogId}`);
+      return { id: resp.id, version_number: resp.version_number };
+    } catch (err: any) {
+      const upstreamMsg = err && (err.body && (err.body.message || err.body.error)) || err && err.message || '';
+      if (typeof upstreamMsg === 'string' && upstreamMsg.includes("Unknown column 'draft_saved_at'")) {
+        const retryPayload = { ...payload };
+        delete (retryPayload as any).draft_saved_at;
+        console.warn(`[versioningService] Upstream schema missing 'draft_saved_at'; retrying create without it.`, { retryPayload, originalError: err });
+        const resp2 = await apiRequest<{ success: boolean; id: number; version_number: number }>(
+          `/blogs/${blogId}/versions`,
+          'POST',
+          retryPayload
+        );
+        console.info(`[versioningService] Created draft id=${resp2.id} version=${resp2.version_number} for blog ${blogId} (without draft_saved_at)`);
+        return { id: resp2.id, version_number: resp2.version_number };
+      }
+      throw err;
+    }
   } catch (err: any) {
     console.error(`[versioningService] saveDraft failed for blog ${blogId}`, { error: err && (err.stack || err.message || err) });
     throw new Error(`Failed to save draft for blog ${blogId}: ${err && (err.message || JSON.stringify(err))}`);
