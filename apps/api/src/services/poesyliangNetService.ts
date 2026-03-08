@@ -14,7 +14,7 @@ async function fetchFromPoesyliangNetApi(endpoint: string): Promise<WpPostApiRes
     throw new Error(`PoesyliangNet API request failed: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
+  return response.json() as Promise<WpPostApiResponse>;
 }
 
 export async function fetchAllPoesyliangNetWpPosts(): Promise<WpPost[]> {

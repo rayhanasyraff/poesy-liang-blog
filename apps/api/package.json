@@ -1,13 +1,13 @@
 {
   "name": "@poesy-liang-blog/api",
   "version": "1.0.0",
-  "private": true,
   "main": "src/index.ts",
-  "type": "module",
+  "private": true,
   "scripts": {
     "dev": "bun --hot src/index.ts",
     "build": "bun build src/index.ts --outdir=dist --target=bun",
     "start": "bun src/index.ts",
     "test": "bun test"
-  }
+  },
+  "type": "module"
 }

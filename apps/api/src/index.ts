@@ -51,7 +51,7 @@ async function startServer(port: number, fallbackPorts: number[] = []): Promise<
 
           // Try fallback ports
           if (fallbackPorts.length > 0) {
-            const nextPort = fallbackPorts[0];
+            const nextPort = fallbackPorts[0] as number;
             const remainingPorts = fallbackPorts.slice(1);
             console.log(`Trying port ${nextPort}...`);
 

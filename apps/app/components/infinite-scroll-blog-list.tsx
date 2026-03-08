@@ -1,12 +1,25 @@
 "use client";
 
-import React from 'react';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import type { Blog, ApiBlog } from "@/types/blog";
 import { BlogCard } from './blog-card';
+import { usePathname, useRouter } from 'next/navigation';
 import Separator from "./shared/separator";
 import { convertApiBlogToBlog } from '@/lib/blog-utils';
+import { Modal } from '@lobehub/ui';
+
+// Swipeable list for admin
+import {
+  LeadingActions,
+  SwipeableList,
+  SwipeableListItem,
+  SwipeAction,
+  TrailingActions,
+} from 'react-swipeable-list';
+import 'react-swipeable-list/dist/styles.css';
+import { useQueryClient } from '@tanstack/react-query';
+import { Edit3, Trash2 } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -50,15 +63,8 @@ async function fetchAllBlogs(): Promise<Blog[]> {
         break;
       }
 
-      // Filter and convert
-      const publishedApiBlogs = apiBlogs.filter(blog =>
-        (blog.blog_status === 'publish' || blog.blog_status === 'draft') &&
-        blog.blog_content.trim() !== '' &&
-        blog.blog_title.trim() !== '' &&
-        blog.blog_title !== 'Auto Draft'
-      );
-
-      const blogs = publishedApiBlogs.map(convertApiBlogToBlog);
+      // Convert all API blogs without filtering so admin can view everything
+      const blogs = apiBlogs.map(convertApiBlogToBlog);
       allBlogs.push(...blogs);
 
       // If we got fewer blogs than requested, we've reached the end
@@ -95,6 +101,7 @@ async function fetchServerPage(
 }
 
 export default function InfiniteScrollBlogList() {
+
   const {
     status,
     data,
@@ -112,7 +119,116 @@ export default function InfiniteScrollBlogList() {
   });
 
   const allRows = data ? data.pages.flatMap((d) => d.rows) : [];
+  const pathname = usePathname();
+  const isAdmin = typeof pathname === 'string' && pathname.startsWith('/admin');
+  const displayRows = isAdmin ? allRows : allRows.filter((b) => b.apiData && (b.apiData.blog_status === 'publish') && (b.apiData.blog_visibility === 'public'));
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  // Deletion UX with confirm modal + undo window
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [candidateBlog, setCandidateBlog] = useState<Blog | null>(null);
+  const [removedIds, setRemovedIds] = useState<number[]>([]);
+  const pendingTimeoutsRef = useRef<Record<number, number>>({});
+  const [undoVisible, setUndoVisible] = useState(false);
+  const [undoBlogId, setUndoBlogId] = useState<number | null>(null);
+
+  const scheduleDelete = (blog: Blog) => {
+    const id = (blog.apiData as any)?.id;
+    if (!id) {
+      alert('Cannot delete this blog (missing id)');
+      return;
+    }
+
+    // Optimistically remove from UI
+    setRemovedIds((prev) => Array.from(new Set([...prev, id])));
+    setUndoVisible(true);
+    setUndoBlogId(id);
+
+    // Schedule final delete after 500ms
+    const timer = window.setTimeout(async () => {
+      try {
+        const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+        if (process.env.NEXT_PUBLIC_API_TOKEN) headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`;
+        const res = await fetch(`${API_BASE_URL}/blogs/${id}`, { method: 'DELETE', headers });
+        const json = await res.json().catch(()=>({success: res.ok}));
+        if (!res.ok || !json.success) {
+          console.error('Failed to delete on server', json);
+          // On failure, restore item
+          setRemovedIds((prev) => prev.filter(x => x !== id));
+        } else {
+          await queryClient.invalidateQueries({ queryKey: ['blog-posts'] });
+        }
+      } catch (err) {
+        console.error('Delete failed', err);
+        setRemovedIds((prev) => prev.filter(x => x !== id));
+      } finally {
+        // clear pending timeout
+        delete pendingTimeoutsRef.current[id];
+        setUndoVisible(false);
+        setUndoBlogId(null);
+      }
+    }, 500);
+
+    pendingTimeoutsRef.current[id] = timer;
+  };
+
+  const handleDeleteClick = (blog: Blog) => {
+    setCandidateBlog(blog);
+    setConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!candidateBlog) return;
+    setConfirmOpen(false);
+    scheduleDelete(candidateBlog);
+    setCandidateBlog(null);
+  };
+
+  const cancelDelete = () => {
+    setConfirmOpen(false);
+    setCandidateBlog(null);
+  };
+
+  const undoDelete = () => {
+    if (!undoBlogId) return;
+    const timer = pendingTimeoutsRef.current[undoBlogId];
+    if (timer) {
+      clearTimeout(timer);
+      delete pendingTimeoutsRef.current[undoBlogId];
+    }
+    setRemovedIds((prev) => prev.filter(x => x !== undoBlogId));
+    setUndoVisible(false);
+    setUndoBlogId(null);
+  };
+
+  const leadingActions = (blog: Blog) => (
+    <LeadingActions>
+      <SwipeAction
+        onClick={() => router.push(`/admin/blog/${(blog.apiData as any)?.blog_name ?? blog.slug}`)}
+      >
+        <div className="h-full flex items-center px-4 bg-sky-600 text-white rounded-l-md">
+          <Edit3 className="w-5 h-5" />
+          <span className="ml-2 text-sm font-medium">Edit</span>
+        </div>
+      </SwipeAction>
+    </LeadingActions>
+  );
+
+  const trailingActions = (blog: Blog) => (
+    <TrailingActions>
+      <SwipeAction
+        destructive={true}
+        onClick={() => handleDeleteClick(blog)}
+      >
+        <div className="h-full flex items-center justify-end px-4 bg-red-600 text-white rounded-r-md">
+          <span className="mr-2 text-sm font-medium">Delete</span>
+          <Trash2 className="w-5 h-5" />
+        </div>
+      </SwipeAction>
+    </TrailingActions>
+  );
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -158,20 +274,68 @@ export default function InfiniteScrollBlogList() {
     <div className="w-full">
       {/* Blog list */}
       <div className="space-y-0">
-        {allRows.map((blog, index, array) => (
-          <div
-            key={blog.apiData ? `api-${blog.apiData.id}` : blog.slug}
-            className="animate-fade-in"
-            style={{
-              animationDelay: `${(index % 5) * 100}ms`,
-              animationFillMode: 'backwards'
-            }}
-          >
-            <BlogCard blog={blog} />
-            {index !== array.length - 1 && <Separator />}
-          </div>
-        ))}
+        {isAdmin ? (
+          <SwipeableList>
+            {displayRows.filter(b => !((b.apiData as any)?.id && removedIds.includes((b.apiData as any).id))).map((blog, index, array) => (
+              <SwipeableListItem
+                key={blog.apiData ? `api-${(blog.apiData as any).id}` : blog.slug}
+                leadingActions={leadingActions(blog)}
+                trailingActions={trailingActions(blog)}
+              >
+                <div
+                  className="animate-fade-in"
+                  style={{
+                    animationDelay: `${(index % 5) * 100}ms`,
+                    animationFillMode: 'backwards'
+                  }}
+                >
+                  <BlogCard blog={blog} />
+                  {index !== array.length - 1 && <Separator />}
+                </div>
+              </SwipeableListItem>
+            ))}
+          </SwipeableList>
+        ) : (
+          displayRows.filter(b => !((b.apiData as any)?.id && removedIds.includes((b.apiData as any).id))).map((blog, index, array) => (
+            <div
+              key={blog.apiData ? `api-${(blog.apiData as any).id}` : blog.slug}
+              className="animate-fade-in"
+              style={{
+                animationDelay: `${(index % 5) * 100}ms`,
+                animationFillMode: 'backwards'
+              }}
+            >
+              <BlogCard blog={blog} />
+              {index !== array.length - 1 && <Separator />}
+            </div>
+          ))
+        )}
       </div>
+
+      {/* Confirm delete modal */}
+      <Modal 
+      open={confirmOpen} 
+      onOk={confirmDelete} 
+      onCancel={cancelDelete} 
+      title="Confirm delete"
+      okText="Delete"
+      okButtonProps={{ danger: true }}
+      cancelText="Cancel"
+      >
+        <div className="py-4">
+          <p>Are you sure you want to delete "{candidateBlog?.metadata?.title ?? ''}"? This action can be undone briefly via undo.</p>
+        </div>
+      </Modal>
+
+      {/* Undo popup (shows for 500ms) */}
+      {undoVisible && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <div className="flex items-center space-x-3 bg-neutral-900 text-white px-4 py-2 rounded shadow-lg">
+            <div>Deleted</div>
+            <button onClick={undoDelete} className="underline text-sm">Undo</button>
+          </div>
+        </div>
+      )}
 
       {/* Load more trigger */}
       {hasNextPage && (
@@ -193,13 +357,6 @@ export default function InfiniteScrollBlogList() {
           That's all! No more blogs to load.
         </div>
       )}
-
-      {/* Background updating indicator */}
-      {/* {isFetching && !isFetchingNextPage && (
-        <div className="fixed top-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-md text-sm">
-          Updating...
-        </div>
-      )} */}
     </div>
   );
 }

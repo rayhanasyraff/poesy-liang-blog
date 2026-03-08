@@ -54,7 +54,6 @@ export function FullscreenHeader({ onDone, title, showCenteredTitle = true }: Re
         </button>
       </div>
 
-      {/* Centered small title with entrance animation (optional) */}
       {showCenteredTitle && (
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 48, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <motion.div

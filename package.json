@@ -48,6 +48,7 @@
     "path": "^0.12.7",
     "react": "19.1.1",
     "react-dom": "19.1.1",
+    "react-swipeable-list": "^1.10.0",
     "turndown": "^7.2.2"
   },
   "devDependencies": {
@@ -94,6 +95,7 @@
     "nx": "21.5.3",
     "postcss": "8.4.38",
     "prettier": "^2.8.8",
+    "react-scan": "^0.5.3",
     "tailwindcss": "3.4.3",
     "ts-jest": "^29.4.6",
     "ts-node": "10.9.1",

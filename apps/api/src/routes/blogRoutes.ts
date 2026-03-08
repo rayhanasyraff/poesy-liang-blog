@@ -3,23 +3,30 @@ import {
   getAllBlogsFromApi,
   getBlogByIdFromApi,
   createBlog,
-  updateBlogFromApi,
-  deleteBlogFromApi
+  deleteBlog,
 } from "../controllers/blogController";
+import {
+  getVersions,
+  getVersionById,
+} from "../controllers/blogVersionController";
+import { getLikes, postLike, deleteLike } from "../controllers/likeController";
 
 const router = Router();
 
-// GET endpoints for blogs
+// Blog endpoints — mirrors api.php capabilities
 router.get("/blogs", getAllBlogsFromApi);
 router.get("/blogs/:id", getBlogByIdFromApi);
-
-// POST endpoint to create blog
 router.post("/blogs", createBlog);
+// Support delete to mirror php api
+router.delete("/blogs/:id", deleteBlog);
 
-// PUT endpoint to update a blog by id/slug
-router.put("/blogs/:id", updateBlogFromApi);
+// Like endpoints (in-memory store)
+router.get("/blogs/:id/likes", getLikes);
+router.post("/blogs/:id/likes", postLike);
+router.delete("/blogs/:id/likes", deleteLike);
 
-// DELETE endpoint to remove a blog by id/slug
-router.delete("/blogs/:id", deleteBlogFromApi);
+// Version endpoints — mirrors api.php capabilities
+router.get("/blogs/:id/versions", getVersions);
+router.get("/blogs/:id/versions/:verId", getVersionById);
 
 export default router;

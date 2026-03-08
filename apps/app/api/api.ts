@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { ApiResponse, ApiBlog } from '@/types/blog';
+import type { ApiResponse, ApiBlog, BlogSettings, BlogVersionSummary } from '@/types/blog';
 
 // GET - Fetch all blogs with pagination
 export const fetchBlogs = async (limit = 50, offset = 0): Promise<ApiBlog[]> => {
@@ -57,4 +57,70 @@ export const migrateBlogsFromWpPosts = async () => {
 export const getMigrationSummary = async () => {
   const res = await apiClient.get('/migrate-wp-posts-journals-into-blogs/summary');
   return res.data;
+};
+
+// ── Blog versioning ───────────────────────────────────────────────────────────
+
+// GET - Fetch all versions for a blog
+export const fetchBlogVersions = async (blogId: number | string): Promise<BlogVersionSummary[]> => {
+  const res = await apiClient.get(`/blogs/${blogId}/versions`);
+  return res.data.data ?? [];
+};
+
+// POST - Save a draft version
+export const saveBlogDraft = async (
+  blogId: number | string,
+  data: {
+    blog_title: string;
+    blog_content: string;
+    parent_version_id?: number | null;
+  } & Partial<BlogSettings>
+): Promise<{ id: number; version_number: number }> => {
+  const res = await apiClient.post(`/blogs/${blogId}/versions`, data);
+  return res.data.data;
+};
+
+// PUT - Commit a draft version
+export const commitBlogVersion = async (
+  blogId: number | string,
+  versionId: number
+): Promise<void> => {
+  await apiClient.put(`/blogs/${blogId}/versions/${versionId}`);
+};
+
+// POST - Publish blog (saves as committed version then copies to blogs table)
+export const publishBlog = async (
+  blogId: number | string,
+  data: { blog_title: string; blog_content: string } & Partial<BlogSettings>
+): Promise<void> => {
+  await apiClient.post(`/blogs/${blogId}/publish`, data);
+};
+
+// POST - Publish a specific committed version
+export const publishBlogVersion = async (
+  blogId: number | string,
+  versionId: number
+): Promise<void> => {
+  await apiClient.post(`/blogs/${blogId}/publish/${versionId}`, {});
+};
+
+// POST - Revert published blog to a committed version
+export const revertBlogVersion = async (
+  blogId: number | string,
+  versionId: number
+): Promise<void> => {
+  await apiClient.post(`/blogs/${blogId}/revert/${versionId}`, {});
+};
+
+// PATCH - Update blog settings only (visibility, comments, etc.)
+export const updateBlogSettings = async (
+  blogId: number | string,
+  settings: Partial<BlogSettings>
+): Promise<void> => {
+  await apiClient.patch(`/blogs/${blogId}/settings`, settings);
+};
+
+// POST - Unpublish a blog (revert to draft status)
+export const unpublishBlog = async (blogId: number | string): Promise<void> => {
+  await apiClient.post(`/blogs/${blogId}/unpublish`, {});
 };

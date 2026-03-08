@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { fetchBlogs, fetchBlogById, insertBlog, updateBlog, deleteBlog } from "../services/blogService";
+import { fetchBlogs, fetchBlogById, insertBlog } from "../services/blogService";
 import { config } from "../config/config";
 
 export async function getAllBlogsFromApi(req: Request, res: Response): Promise<void> {
@@ -35,7 +35,7 @@ export async function getBlogByIdFromApi(req: Request, res: Response): Promise<v
       return;
     }
 
-    const blog = await fetchBlogById(id);
+    const blog = await fetchBlogById(String(id));
 
     if (!blog) {
       res.status(404).json({
@@ -94,31 +94,7 @@ export async function createBlog(req: Request, res: Response): Promise<void> {
   }
 }
 
-export async function updateBlogFromApi(req: Request, res: Response): Promise<void> {
-  try {
-    const id = req.params.id;
-    const blogData = req.body;
-
-    if (!id || !blogData) {
-      res.status(400).json({ success: false, error: "Blog ID and data are required" });
-      return;
-    }
-
-    const result = await updateBlog(id, blogData);
-
-    if (!result.success) {
-      res.status(500).json({ success: false, error: result.message || "Failed to update blog" });
-      return;
-    }
-
-    res.status(200).json({ success: true, message: result.message || "Blog updated successfully" });
-  } catch (error) {
-    console.error("Error in updateBlogFromApi:", error);
-    res.status(500).json({ success: false, error: "Failed to update blog" });
-  }
-}
-
-export async function deleteBlogFromApi(req: Request, res: Response): Promise<void> {
+export async function deleteBlog(req: Request, res: Response): Promise<void> {
   try {
     const id = req.params.id;
 
@@ -127,16 +103,19 @@ export async function deleteBlogFromApi(req: Request, res: Response): Promise<vo
       return;
     }
 
-    const result = await deleteBlog(id);
+    // Call service to delete on upstream API
+    const { deleteBlogById } = await import("../services/blogService");
+    const response = await deleteBlogById(String(id));
 
-    if (!result.success) {
-      res.status(500).json({ success: false, error: result.message || "Failed to delete blog" });
+    if (!response || response.success === false) {
+      const status = response && (response.error === 'Blog not found' || response.error === 'Version not found') ? 404 : 500;
+      res.status(status).json({ success: false, error: response?.error || 'Failed to delete blog' });
       return;
     }
 
-    res.status(200).json({ success: true, message: result.message || "Blog deleted successfully" });
+    res.status(200).json({ success: true, deleted: true });
   } catch (error) {
-    console.error("Error in deleteBlogFromApi:", error);
+    console.error("Error in deleteBlog:", error);
     res.status(500).json({ success: false, error: "Failed to delete blog" });
   }
 }

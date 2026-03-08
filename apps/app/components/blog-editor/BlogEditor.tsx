@@ -6,6 +6,10 @@ import { $convertToMarkdownString, $convertFromMarkdownString, TRANSFORMERS } fr
 import { motion, AnimatePresence } from 'framer-motion';
 import { FullscreenHeader } from './FullscreenHeader';
 import { BottomToolbar, type ContentViewMode } from './BottomToolbar';
+import { BlogActionBar } from './BlogActionBar';
+import { BlogEditorMeta, type BlogPublishStatus } from './BlogEditorMeta';
+import { apiClient } from '@/api/client';
+import type { BlogSettings, BlogVersionSummary } from '@/types/blog';
 import { EditorBridgePlugin } from './EditorBridgePlugin';
 import type { LexicalEditor } from 'lexical';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
@@ -122,11 +126,9 @@ function CodeBlockWrapper({ initialLang, initialCode, onChange }: any) {
           language={lang}
           value={code}
           onValueChange={(v: string) => setCode(v)}
-          tabSize={tabSize}
-          useTabs={useTabs}
-          showLineNumbers={showLineNumbers}
           variant="filled"
           style={{ width: '100%' }}
+          {...({ tabSize, useTabs, showLineNumbers } as any)}
         />
       </div>
     </div>
@@ -319,25 +321,59 @@ const MERMAID_EXAMPLE = `graph TD
   B -->|Yes| C[Action]
   B -->|No| D[End]`;
 
+// ── Default settings ──────────────────────────────────────────────────────────
+
+const DEFAULT_SETTINGS: BlogSettings = {
+  blog_visibility: 'public',
+  comment_status: 'open',
+  notification_status: 'all',
+  like_visibility: 'open',
+  view_visibility: 'open',
+};
+
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled';
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export const BlogEditor = ({
   style,
   onTitleChange,
+  blogId: blogIdProp,
+  onBlogCreated,
 }: {
   style?: React.CSSProperties;
   onTitleChange?: (title: string) => void;
+  blogId?: number | string;
+  onBlogCreated?: (id: number | string) => void;
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
   const bodyWrapperRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const lexicalEditorRef = useRef<LexicalEditor | null>(null);
   const [isContentFocused, setIsContentFocused] = useState(false);
-  const [contentViewMode, setContentViewMode] = useState<ContentViewMode>('markdown');
+  const [contentViewMode, setContentViewMode] = useState<ContentViewMode | 'diff'>('markdown');
   const [markdownContent, setMarkdownContent] = useState('');
   const [jsonContent, setJsonContent] = useState('');
   const [diffOldContent, setDiffOldContent] = useState('');
   const [titleText, setTitleText] = useState('');
+
+  // ── Versioning / publish state ───────────────────────────────────────────
+  const [currentBlogId, setCurrentBlogId] = useState<number | string | null>(blogIdProp ?? null);
+  const [latestVersionId, setLatestVersionId] = useState<number | null>(null);
+  const [currentVersionNumber, setCurrentVersionNumber] = useState<number | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [settings, setSettings] = useState<BlogSettings>(DEFAULT_SETTINGS);
+  const [versions, setVersions] = useState<BlogVersionSummary[]>([]);
+
+  // ── Meta timestamps + publish status ─────────────────────────────────────
+  const [publishStatus, setPublishStatus] = useState<BlogPublishStatus>('unsaved');
+  const [createdAt, setCreatedAt] = useState<Date | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [lastDraftSavedAt, setLastDraftSavedAt] = useState<Date | null>(null);
+  const [lastPublishedAt, setLastPublishedAt] = useState<Date | null>(null);
 
   // EditorSlashMenu command palette
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -346,6 +382,9 @@ export const BlogEditor = ({
   const isPencilSyncingRef = useRef(false);
   const pencilSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressFocusEntryRef = useRef(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Keep a stable ref to the save fn to avoid stale closures in the auto-save effect
+  const saveDraftFnRef = useRef<(() => Promise<void>) | undefined>(undefined);
 
   const [editorLeft, setEditorLeft] = useState(0);
   const [editorRight, setEditorRight] = useState(0);
@@ -412,7 +451,7 @@ export const BlogEditor = ({
     lexicalEditorRef.current = editor;
   }, []);
 
-  const handleViewModeChange = useCallback((mode: ContentViewMode) => {
+  const handleViewModeChange = useCallback((mode: ContentViewMode | 'diff') => {
     const editor = lexicalEditorRef.current;
     if (mode === 'edit' && editor) {
       editor.getEditorState().read(() => {
@@ -565,11 +604,20 @@ export const BlogEditor = ({
       el.style.height = 'auto';
       el.style.height = `${el.scrollHeight}px`;
     } catch {}
-    const text = (el.value ?? '').replace(/\u200B/g, '').trim();
-    el.parentElement?.setAttribute('data-empty', text === '' ? 'true' : 'false');
-    setTitleText(text);
-    onTitleChange?.(text);
+    const rawText = (el.value ?? '').replace(/\u200B/g, '');
+    const trimmed = rawText.trim();
+    el.parentElement?.setAttribute('data-empty', trimmed === '' ? 'true' : 'false');
+    setTitleText(rawText);
+    onTitleChange?.(trimmed);
   }, [onTitleChange]);
+
+  const handleTitleBlur = useCallback(() => {
+    const trimmed = titleText.trim();
+    if (trimmed !== titleText) {
+      setTitleText(trimmed);
+      onTitleChange?.(trimmed);
+    }
+  }, [titleText, onTitleChange]);
 
   // ── Body keyboard shortcuts ──────────────────────────────────────────────
 
@@ -675,6 +723,15 @@ export const BlogEditor = ({
     return () => { console.error = orig; };
   }, []);
 
+  // ── Auto-save draft (3 s after last change) + track updatedAt ───────────
+  useEffect(() => {
+    if (!markdownContent && !titleText) return;
+    setUpdatedAt(new Date());
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => { saveDraftFnRef.current?.(); }, 3000);
+    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
+  }, [markdownContent, titleText]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Initialize title height
   useEffect(() => {
     const t = titleRef.current;
@@ -685,6 +742,137 @@ export const BlogEditor = ({
       } catch {}
     }
   }, []);
+
+  // ── Blog versioning helpers ──────────────────────────────────────────────
+
+  // Returns the blog id, creating the blog first if it doesn't exist yet
+  const ensureBlogExists = useCallback(async (): Promise<number | string> => {
+    if (currentBlogId) return currentBlogId;
+    const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '');
+    const res = await apiClient.post('/blogs', {
+      blog_name: slugify(titleText || 'untitled'),
+      blog_title: titleText || 'Untitled',
+      blog_excerpt: '',
+      blog_date: now,
+      blog_date_gmt: now,
+      blog_content: markdownContent,
+      blog_status: 'draft',
+      comment_status: settings.comment_status,
+      notification_status: settings.notification_status,
+      blog_modified: now,
+      blog_modified_gmt: now,
+      tags: '',
+      blog_visibility: settings.blog_visibility,
+      like_count: 0,
+    });
+    const id = res.data?.data?.id;
+    if (!id) throw new Error('Failed to create blog');
+    setCurrentBlogId(id);
+    setCreatedAt(new Date());
+    onBlogCreated?.(id);
+    return id;
+  }, [currentBlogId, titleText, markdownContent, settings, onBlogCreated]);
+
+  const handleSaveDraft = useCallback(async () => {
+    if (!titleText.trim() && !markdownContent.trim()) return;
+    setSaveStatus('saving');
+    try {
+      const id = await ensureBlogExists();
+      const res = await apiClient.post(`/blogs/${id}/versions`, {
+        blog_title: titleText || 'Untitled',
+        blog_content: markdownContent,
+        parent_version_id: latestVersionId,
+        ...settings,
+      });
+      setLatestVersionId(res.data.data.id);
+      setCurrentVersionNumber(res.data.data.version_number);
+      setLastDraftSavedAt(new Date());
+      setPublishStatus((s) => s === 'unsaved' ? 'draft' : s);
+      setSaveStatus('saved');
+    } catch {
+      setSaveStatus('error');
+    }
+  }, [ensureBlogExists, titleText, markdownContent, latestVersionId, settings]);
+
+  const handlePublish = useCallback(async () => {
+    if (!titleText.trim()) return;
+    setIsPublishing(true);
+    try {
+      const id = await ensureBlogExists();
+      await apiClient.post(`/blogs/${id}/publish`, {
+        blog_title: titleText || 'Untitled',
+        blog_content: markdownContent,
+        ...settings,
+      });
+      setLastPublishedAt(new Date());
+      setPublishStatus('published');
+      setSaveStatus('saved');
+    } catch {
+      setSaveStatus('error');
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [ensureBlogExists, titleText, markdownContent, settings]);
+
+  const handleSettingChange = useCallback(async (key: keyof BlogSettings, value: string) => {
+    setSettings((s) => ({ ...s, [key]: value }));
+    if (!currentBlogId) return;
+    try {
+      await apiClient.patch(`/blogs/${currentBlogId}/settings`, { [key]: value });
+    } catch {
+      // revert optimistic update
+      setSettings((s) => ({ ...s }));
+    }
+  }, [currentBlogId]);
+
+  const handleFetchVersions = useCallback(async () => {
+    if (!currentBlogId) return;
+    try {
+      const res = await apiClient.get(`/blogs/${currentBlogId}/versions`);
+      setVersions(res.data.data ?? []);
+    } catch {
+      setVersions([]);
+    }
+  }, [currentBlogId]);
+
+  const handleVersionPublish = useCallback(async (versionId: number) => {
+    if (!currentBlogId) return;
+    try {
+      await apiClient.post(`/blogs/${currentBlogId}/publish/${versionId}`, {});
+      setSaveStatus('saved');
+    } catch {}
+  }, [currentBlogId]);
+
+  const handleVersionRevert = useCallback(async (versionId: number) => {
+    if (!currentBlogId) return;
+    try {
+      await apiClient.post(`/blogs/${currentBlogId}/revert/${versionId}`, {});
+      setSaveStatus('saved');
+    } catch {}
+  }, [currentBlogId]);
+
+  const handleUnpublish = useCallback(async () => {
+    if (!currentBlogId) return;
+    try {
+      await apiClient.post(`/blogs/${currentBlogId}/unpublish`, {});
+      setPublishStatus('draft');
+    } catch {}
+  }, [currentBlogId]);
+
+  const handleDeleteBlog = useCallback(async () => {
+    if (!currentBlogId) return;
+    if (!window.confirm('Delete this blog and all its versions? This cannot be undone.')) return;
+    try {
+      await apiClient.delete(`/blogs/${currentBlogId}`);
+      setCurrentBlogId(null);
+      setLatestVersionId(null);
+      setVersions([]);
+      setIsContentFocused(false);
+    } catch {}
+  }, [currentBlogId]);
+
+  // Keep ref in sync so auto-save effect always calls the latest version
+  saveDraftFnRef.current = handleSaveDraft;
 
   // Handle palette item selection
   const handlePaletteSelect = useCallback((item: EditorSlashMenuOption) => {
@@ -864,25 +1052,54 @@ export const BlogEditor = ({
           style={{ flexShrink: 0 }}
         />
 
-        {/* ── Title editor ── */}
+        {/* ── Title + meta (hidden in content focus mode) ── */}
         {!isContentFocused && (
           <div style={{ flexShrink: 0 }}>
             <textarea
               ref={titleRef}
               className="blog-editor-title"
-              placeholder="Write a short, descriptive title..."
+              placeholder="New Blog"
               data-empty="true"
               rows={1}
               value={titleText}
               onKeyDown={handleTitleKeyDown}
               onInput={handleTitleInput}
+              onBlur={handleTitleBlur}
               onPaste={handleTitlePaste}
               draggable={false}
               onDragStart={(e) => e.preventDefault()}
               style={{ resize: 'none', overflow: 'hidden', width: '100%', maxWidth: '80%' }}
             />
+            <BlogEditorMeta
+              publishStatus={publishStatus}
+              createdAt={createdAt}
+              updatedAt={updatedAt}
+              versionNumber={currentVersionNumber}
+              lastDraftSavedAt={lastDraftSavedAt}
+              lastPublishedAt={lastPublishedAt}
+            />
           </div>
         )}
+
+        {/* ── Blog action bar (fixed bottom, hidden in content focus mode) ── */}
+        <AnimatePresence initial={false}>
+          {!isContentFocused && (
+            <BlogActionBar
+              key="blog-action-bar"
+              onSaveDraft={handleSaveDraft}
+              onPublish={handlePublish}
+              isPublishing={isPublishing}
+              settings={settings}
+              onSettingChange={handleSettingChange}
+              versions={versions}
+              onFetchVersions={handleFetchVersions}
+              onVersionPublish={handleVersionPublish}
+              onVersionRevert={handleVersionRevert}
+              onUnpublish={publishStatus === 'published' ? handleUnpublish : undefined}
+              onDeleteBlog={currentBlogId ? handleDeleteBlog : undefined}
+            />
+          )}
+        </AnimatePresence>
 
         {/* ── EditorSlashMenu command palette (Cmd+/) ── */}
         <EditorSlashMenu

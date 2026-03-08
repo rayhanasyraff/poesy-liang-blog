@@ -96,7 +96,7 @@ export async function migrateWpPostsJournalsIntoBlogs(req: Request, res: Respons
           successList.push({
             id: result.id!,
             title: blog.blog_title,
-            date: blog.blog_date,
+            date: blog.blog_date_published,
             source: blog._source,
             original_id: blog._original_id,
             original_data: blog._original_data,
@@ -117,11 +117,11 @@ export async function migrateWpPostsJournalsIntoBlogs(req: Request, res: Respons
           console.error(`  Blog: "${blog.blog_title}"`);
           console.error(`  Source: ${blog._source}`);
           console.error(`  Original ID: ${blog._original_id}`);
-          console.error(`  Date: ${blog.blog_date}`);
+          console.error(`  Date: ${blog.blog_date_published}`);
 
           failedList.push({
             title: blog.blog_title,
-            date: blog.blog_date,
+            date: blog.blog_date_published,
             source: blog._source,
             original_id: blog._original_id,
             original_data: blog._original_data,
@@ -147,7 +147,7 @@ export async function migrateWpPostsJournalsIntoBlogs(req: Request, res: Respons
         console.error(`  Blog: "${blog.blog_title}"`);
         console.error(`  Source: ${blog._source}`);
         console.error(`  Original ID: ${blog._original_id}`);
-        console.error(`  Date: ${blog.blog_date}`);
+        console.error(`  Date: ${blog.blog_date_published}`);
         console.error(`  Error: ${errorMsg}`);
         if (stackTrace) {
           console.error(`  Stack: ${stackTrace}`);
@@ -156,7 +156,7 @@ export async function migrateWpPostsJournalsIntoBlogs(req: Request, res: Respons
         const { _source, _original_id, _original_data, ...blogData } = blog;
         failedList.push({
           title: blog.blog_title,
-          date: blog.blog_date,
+          date: blog.blog_date_published,
           source: blog._source,
           original_id: blog._original_id,
           original_data: blog._original_data,

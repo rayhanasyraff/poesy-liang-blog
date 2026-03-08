@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import Container from '@/components/shared/container'
-import { ModeToggle } from '@/components/ui/theme-toggle'
+import { ModeToggle } from '@/components/ui/theme-toggle';
 
 const ADMIN_NAV_ITEMS = {
   blog: '/admin',
@@ -56,6 +56,10 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                   {name}
                 </Link>
               ))}
+            </div>
+
+            <div className="ml-4 flex items-center">
+              <ModeToggle />
             </div>
           </div>
         </nav>

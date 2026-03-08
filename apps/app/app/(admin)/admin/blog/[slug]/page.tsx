@@ -46,7 +46,7 @@ export async function generateMetadata({
       description,
       type: "article",
       publishedTime,
-      url: `https://onurhan.dev/blog/${blog.slug}`,
+      url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://onurhan.dev'}/blog/${blog.slug}`,
       images: [
         {
           url: ogImage,
@@ -67,7 +67,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function BlogDetailPage({ params }: Props) {
+export default async function AdminBlogDetailPage({ params }: Props) {
   const { slug } = await params;
   const blog = await getBlogBySlug(slug);
   const headings = blog ? extractHeadings(blog.content) : [];
@@ -90,9 +90,9 @@ export default async function BlogDetailPage({ params }: Props) {
             dateModified: blog.metadata.publishedAt,
             description: blog.metadata.summary,
             image: (blog.metadata as any).image
-              ? `https://onurhan.dev${(blog.metadata as any).image}`
-              : `https://onurhan.dev/og?title=${blog.metadata.title}`,
-            url: `https://onurhan.dev/blog/${blog.slug}`,
+              ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://onurhan.dev'}${(blog.metadata as any).image}`
+              : `${process.env.NEXT_PUBLIC_APP_URL || 'https://onurhan.dev'}/og?title=${blog.metadata.title}`,
+            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://onurhan.dev'}/blog/${blog.slug}`,
             author: {
               "@type": "Person",
               name: "Onurhan Demir",

@@ -10,8 +10,7 @@ async function fetchFromBlogApi(endpoint: string, method = "GET", body?: BlogPos
     }
   };
 
-  // Allow sending a JSON body for POST/PUT/PATCH requests
-  if (body && method && method.toUpperCase() !== "GET") {
+  if (body && method.toUpperCase() !== "GET") {
     options.body = JSON.stringify(body);
   }
 
@@ -21,43 +20,7 @@ async function fetchFromBlogApi(endpoint: string, method = "GET", body?: BlogPos
     throw new Error(`Blog API request failed: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
-}
-
-export async function updateBlog(id: string, blog: BlogPost): Promise<{ success: boolean; message?: string }> {
-  try {
-    const endpoint = `${config.poesyliangNet.apiBaseUrl}/blogs/${id}`;
-    const response = await fetchFromBlogApi(endpoint, "PUT", blog);
-
-    return {
-      success: response.success,
-      message: response.message,
-    };
-  } catch (error) {
-    console.error("Error updating blog:", error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
-
-export async function deleteBlog(id: string): Promise<{ success: boolean; message?: string }> {
-  try {
-    const endpoint = `${config.poesyliangNet.apiBaseUrl}/blogs/${id}`;
-    const response = await fetchFromBlogApi(endpoint, "DELETE");
-
-    return {
-      success: response.success,
-      message: response.message,
-    };
-  } catch (error) {
-    console.error("Error deleting blog:", error);
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
+  return response.json() as Promise<BlogPostApiResponse>;
 }
 
 export async function fetchAllBlogs(): Promise<BlogPost[]> {
@@ -71,15 +34,11 @@ export async function fetchAllBlogs(): Promise<BlogPost[]> {
       const endpoint = `${config.poesyliangNet.apiBaseUrl}/blogs?limit=${limit}&offset=${offset}`;
       const response = await fetchFromBlogApi(endpoint);
 
-      if (!response.success) {
-        break;
-      }
+      if (!response.success) break;
 
       const blogs = Array.isArray(response.data) ? response.data : response.data ? [response.data] : [];
 
-      if (blogs.length === 0) {
-        break;
-      }
+      if (blogs.length === 0) break;
 
       allBlogs.push(...blogs);
 
@@ -102,9 +61,7 @@ export async function fetchBlogs(limit = config.pagination.defaultLimit, offset 
     const endpoint = `${config.poesyliangNet.apiBaseUrl}/blogs?limit=${limit}&offset=${offset}`;
     const response = await fetchFromBlogApi(endpoint);
 
-    if (!response.success || !response.data) {
-      return [];
-    }
+    if (!response.success || !response.data) return [];
 
     return Array.isArray(response.data) ? response.data : [response.data];
   } catch (error) {
@@ -118,9 +75,7 @@ export async function fetchBlogById(id: string): Promise<BlogPost | null> {
     const endpoint = `${config.poesyliangNet.apiBaseUrl}/blogs/${id}`;
     const response = await fetchFromBlogApi(endpoint);
 
-    if (!response.success || !response.data) {
-      return null;
-    }
+    if (!response.success || !response.data) return null;
 
     return Array.isArray(response.data) ? (response.data[0] || null) : response.data;
   } catch (error) {
@@ -137,7 +92,7 @@ export async function insertBlog(blog: BlogPost): Promise<{ success: boolean; me
     return {
       success: response.success,
       message: response.message,
-      id: response.data && !Array.isArray(response.data) ? (response.data as any).id : undefined
+      id: response.data && !Array.isArray(response.data) ? String((response.data as any).id) : undefined
     };
   } catch (error) {
     console.error("Error inserting blog:", error);
@@ -145,5 +100,17 @@ export async function insertBlog(blog: BlogPost): Promise<{ success: boolean; me
       success: false,
       message: error instanceof Error ? error.message : "Unknown error"
     };
+  }
+}
+
+export async function deleteBlogById(id: string): Promise<any> {
+  try {
+    const endpoint = `${config.poesyliangNet.apiBaseUrl}/blogs/${id}`;
+    // Upstream API expects a DELETE; no body
+    const response = await fetchFromBlogApi(endpoint, "DELETE");
+    return response;
+  } catch (error) {
+    console.error(`Error deleting blog ${id}:`, error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

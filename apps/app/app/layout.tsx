@@ -4,6 +4,7 @@ import '../lib/patch-url-parse';
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 import { Header } from "@/components/header";
@@ -24,7 +25,19 @@ export default function RootLayout({
       <head>
         <link rel="icon" type="image/png" href="/poesy-logo-pink.png" />
         <link rel="shortcut icon" type="image/png" href="/poesy-logo-pink.png" />
-        <script async src="https://www.instagram.com/embed.js"></script>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+        <Script
+          src="//unpkg.com/react-scan/dist/auto.global.js"
+          crossOrigin="anonymous"
+          strategy="beforeInteractive"
+        />
+        <Script src="https://www.instagram.com/embed.js" strategy="afterInteractive" />
       </head>
       <body
         className={`${inter.className} bg-background text-foreground overflow-y-scroll`}

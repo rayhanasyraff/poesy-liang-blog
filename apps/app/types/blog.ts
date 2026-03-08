@@ -28,7 +28,27 @@ export interface ApiBlog {
   blog_modified_gmt: string;
   tags: string | null;
   blog_visibility: 'public' | 'private';
+  like_visibility?: 'open' | 'close';
+  view_visibility?: 'open' | 'close';
   like_count: number;
+}
+
+export interface BlogVersionSummary {
+  id: number;
+  blog_id: number;
+  parent_version_id: number | null;
+  version_number: number;
+  status: 'draft' | 'committed';
+  blog_title: string;
+  created_at: string;
+}
+
+export interface BlogSettings {
+  blog_visibility: 'public' | 'private';
+  comment_status: 'open' | 'close';
+  notification_status: 'all' | 'none';
+  like_visibility: 'open' | 'close';
+  view_visibility: 'open' | 'close';
 }
 
 export interface ApiResponse {

@@ -8,42 +8,43 @@ export interface BlogPostWithSource extends BlogPost {
 }
 
 export function transformWpPostToBlogPost(wpPost: WpPost, source: "poesyliang.com" | "poesyliang.net"): BlogPostWithSource {
-  // Normalize post_status to "publish" or keep original
-  const normalizeStatus = (status: string): string => {
+  const normalizeStatus = (status: string): 'draft' | 'published' => {
     const normalized = status.toLowerCase().trim();
-    if (normalized === "draft" || normalized === "publish" || normalized === "published") {
-      return normalized === "published" ? "publish" : normalized;
-    }
-    return "publish"; // Default to publish
+    return normalized === 'draft' ? 'draft' : 'published';
   };
 
-  // Normalize comment_status to "open" or "close"
-  const normalizeCommentStatus = (status: string): string => {
-    const normalized = status.toLowerCase().trim();
-    return normalized === "open" ? "open" : "close";
+  const normalizeCommentStatus = (status: string): 'open' | 'close' => {
+    return status.toLowerCase().trim() === 'open' ? 'open' : 'close';
   };
 
-  // Normalize ping_status to notification_status ("all" or "none")
-  const normalizeNotificationStatus = (status: string): string => {
+  const normalizeNotificationStatus = (status: string): 'all' | 'none' => {
     const normalized = status.toLowerCase().trim();
-    return normalized === "open" || normalized === "all" ? "all" : "none";
+    return normalized === 'open' || normalized === 'all' ? 'all' : 'none';
   };
+
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  const nowGmt = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
   return {
     blog_name: wpPost.post_name || "",
     blog_title: wpPost.post_title || "",
     blog_excerpt: wpPost.post_excerpt || "",
-    blog_date: wpPost.post_date || "",
-    blog_date_gmt: wpPost.post_date_gmt || "",
+    blog_date_published: wpPost.post_date || now,
+    blog_date_published_gmt: wpPost.post_date_gmt || nowGmt,
     blog_content: wpPost.post_content || "",
     blog_status: normalizeStatus(wpPost.post_status),
     comment_status: normalizeCommentStatus(wpPost.comment_status),
     notification_status: normalizeNotificationStatus(wpPost.ping_status),
-    blog_modified: wpPost.post_modified || "",
-    blog_modified_gmt: wpPost.post_modified_gmt || "",
+    blog_date_modified: wpPost.post_modified || now,
+    blog_date_modified_gmt: wpPost.post_modified_gmt || nowGmt,
+    blog_date_created: wpPost.post_date || now,
+    blog_date_created_gmt: wpPost.post_date_gmt || nowGmt,
     tags: wpPost.term_slug || "",
-    blog_visibility: "private", // Default to private
-    like_count: 0, // Default to 0
+    blog_visibility: "private",
+    like_count: 0,
+    like_visibility: "close",
+    view_count: 0,
+    view_visibility: "open",
     _source: source,
     _original_id: wpPost.ID || "",
     _original_data: wpPost,
@@ -60,8 +61,8 @@ export function combineAndSortBlogs(poesyliangComWpPosts: WpPost[], poesyliangNe
 
   // Sort by blog_date from oldest to latest
   combinedBlogs.sort((a, b) => {
-    const dateA = new Date(a.blog_date).getTime();
-    const dateB = new Date(b.blog_date).getTime();
+    const dateA = new Date(a.blog_date_published).getTime();
+    const dateB = new Date(b.blog_date_published).getTime();
     return dateA - dateB; // Ascending order (oldest first)
   });
 
