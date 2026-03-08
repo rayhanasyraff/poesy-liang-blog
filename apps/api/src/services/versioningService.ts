@@ -165,17 +165,43 @@ export async function publishDraft(
   const { id: draftId, version_number } = await saveDraft(blogId, draftData);
   const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '');
 
-  await apiRequest(`/blogs/${blogId}/versions/${draftId}`, 'PUT', {
-    status: 'published',
-    published_at: now,
-  });
+  // Attempt to mark the version as published, retrying without published_at for older upstream schemas
+  try {
+    await apiRequest(`/blogs/${blogId}/versions/${draftId}`, 'PUT', {
+      status: 'published',
+      published_at: now,
+    });
+  } catch (err: any) {
+    const upstreamMsg = err && (err.body && (err.body.message || err.body.error)) || err && err.message || '';
+    if (typeof upstreamMsg === 'string' && upstreamMsg.includes("Unknown column 'published_at'")) {
+      console.warn(`[versioningService] Upstream schema missing 'published_at'; retrying version update without it.`, { blogId, draftId });
+      await apiRequest(`/blogs/${blogId}/versions/${draftId}`, 'PUT', { status: 'published' });
+    } else {
+      throw err;
+    }
+  }
 
-  await apiRequest(`/blogs/${blogId}`, 'PUT', {
-    blog_status: 'publish',
-    current_published_version_id: draftId,
-    blog_date_modified: now,
-    blog_date_modified_gmt: now,
-  });
+  // Update blog-level published pointer; retry without current_published_version_id if upstream schema lacks it
+  try {
+    await apiRequest(`/blogs/${blogId}`, 'PUT', {
+      blog_status: 'publish',
+      current_published_version_id: draftId,
+      blog_date_modified: now,
+      blog_date_modified_gmt: now,
+    });
+  } catch (err: any) {
+    const upstreamMsg = err && (err.body && (err.body.message || err.body.error)) || err && err.message || '';
+    if (typeof upstreamMsg === 'string' && upstreamMsg.includes("Unknown column 'current_published_version_id'")) {
+      console.warn(`[versioningService] Upstream schema missing 'current_published_version_id'; retrying blog update without it.`, { blogId, draftId });
+      await apiRequest(`/blogs/${blogId}`, 'PUT', {
+        blog_status: 'publish',
+        blog_date_modified: now,
+        blog_date_modified_gmt: now,
+      });
+    } else {
+      throw err;
+    }
+  }
 
   return { id: draftId, version_number };
 }
