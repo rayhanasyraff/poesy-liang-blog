@@ -360,7 +360,7 @@ export const BlogEditor = ({
   const [titleText, setTitleText] = useState('');
 
   // ── Versioning / publish state ───────────────────────────────────────────
-  const [currentBlogId, setCurrentBlogId] = useState<number | string | null>(blogIdProp ?? null);
+  const [currentBlogId, setCurrentBlogId] = useState<number | string | null>(null);
   const [latestVersionId, setLatestVersionId] = useState<number | null>(null);
   const [currentVersionNumber, setCurrentVersionNumber] = useState<number | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -371,9 +371,10 @@ export const BlogEditor = ({
   // ── Meta timestamps + publish status ─────────────────────────────────────
   const [publishStatus, setPublishStatus] = useState<BlogPublishStatus>('unsaved');
   const [createdAt, setCreatedAt] = useState<Date | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<Date | null>(null);
   const [lastPublishedAt, setLastPublishedAt] = useState<Date | null>(null);
+  const [publishedVersionNumber, setPublishedVersionNumber] = useState<number | null>(null);
+  const [unsavedChangesAt, setUnsavedChangesAt] = useState<Date | null>(null);
 
   // EditorSlashMenu command palette
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -385,6 +386,9 @@ export const BlogEditor = ({
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // Keep a stable ref to the save fn to avoid stale closures in the auto-save effect
   const saveDraftFnRef = useRef<(() => Promise<void>) | undefined>(undefined);
+  // Deduplicate concurrent blog-creation calls (race condition guard)
+  const blogCreationPromiseRef = useRef<Promise<number | string> | null>(null);
+  const currentBlogIdRef = useRef<number | string | null>(null);
 
   const [editorLeft, setEditorLeft] = useState(0);
   const [editorRight, setEditorRight] = useState(0);
@@ -406,17 +410,6 @@ export const BlogEditor = ({
       setEditorLeft(r.left);
       setEditorRight(window.innerWidth - r.right);
     }
-    try {
-      const t = titleRef.current;
-      const existing = (t?.value ?? '').replace(/\u200B/g, '').trim();
-      if (t && existing === '') {
-        t.value = 'New Blog';
-        t.parentElement?.setAttribute('data-empty', 'false');
-        try { t.style.height = 'auto'; t.style.height = `${t.scrollHeight}px`; } catch {}
-        setTitleText('New Blog');
-        onTitleChange?.('New Blog');
-      }
-    } catch {}
     setIsContentFocused(true);
   }, [isContentFocused, onTitleChange]);
 
@@ -487,6 +480,7 @@ export const BlogEditor = ({
         editorState.read(() => {
           try { setMarkdownContent($convertToMarkdownString(TRANSFORMERS)); } catch {}
         });
+        setUnsavedChangesAt(new Date());
       });
       return true;
     };
@@ -608,6 +602,7 @@ export const BlogEditor = ({
     const trimmed = rawText.trim();
     el.parentElement?.setAttribute('data-empty', trimmed === '' ? 'true' : 'false');
     setTitleText(rawText);
+    setUnsavedChangesAt(new Date());
     onTitleChange?.(trimmed);
   }, [onTitleChange]);
 
@@ -709,26 +704,33 @@ export const BlogEditor = ({
     titleRef.current?.dispatchEvent(new Event('input', { bubbles: true }));
   }, []);
 
-  // Suppress React 19 element.ref warning from third-party editor
+  // Suppress known third-party deprecation warnings
   useEffect(() => {
     const orig = console.error;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     console.error = (...args: any[]) => {
       try {
         const m = args[0];
-        if (typeof m === 'string' && m.includes('Accessing element.ref was removed in React 19')) return;
+        if (typeof m === 'string' && (
+          m.includes('Accessing element.ref was removed in React 19') ||
+          m.includes('[antd:') ||
+          (m.includes('rootClassName') && m.includes('deprecated'))
+        )) return;
       } catch {}
-      orig.apply(console, args as any);
+      try {
+        if (typeof orig === 'function') orig.apply(console, args as any);
+      } catch (e) {
+        // Swallow any errors thrown while logging to avoid breaking the app
+      }
     };
     return () => { console.error = orig; };
   }, []);
 
-  // ── Auto-save draft (3 s after last change) + track updatedAt ───────────
+  // ── Auto-save draft (3 s after last change) ─────────────────────────────
   useEffect(() => {
     if (!markdownContent && !titleText) return;
-    setUpdatedAt(new Date());
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    autoSaveTimerRef.current = setTimeout(() => { saveDraftFnRef.current?.(); }, 3000);
+    autoSaveTimerRef.current = setTimeout(() => { saveDraftFnRef.current?.(); }, 800);
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
   }, [markdownContent, titleText]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -747,31 +749,49 @@ export const BlogEditor = ({
 
   // Returns the blog id, creating the blog first if it doesn't exist yet
   const ensureBlogExists = useCallback(async (): Promise<number | string> => {
-    if (currentBlogId) return currentBlogId;
-    const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '');
-    const res = await apiClient.post('/blogs', {
-      blog_name: slugify(titleText || 'untitled'),
-      blog_title: titleText || 'Untitled',
-      blog_excerpt: '',
-      blog_date: now,
-      blog_date_gmt: now,
-      blog_content: markdownContent,
-      blog_status: 'draft',
-      comment_status: settings.comment_status,
-      notification_status: settings.notification_status,
-      blog_modified: now,
-      blog_modified_gmt: now,
-      tags: '',
-      blog_visibility: settings.blog_visibility,
-      like_count: 0,
-    });
-    const id = res.data?.data?.id;
-    if (!id) throw new Error('Failed to create blog');
-    setCurrentBlogId(id);
-    setCreatedAt(new Date());
-    onBlogCreated?.(id);
-    return id;
-  }, [currentBlogId, titleText, markdownContent, settings, onBlogCreated]);
+    // Use ref for synchronous check — avoids race where state hasn't updated yet
+    if (currentBlogIdRef.current) return currentBlogIdRef.current;
+    // If a creation is already in-flight, reuse it
+    if (blogCreationPromiseRef.current) return blogCreationPromiseRef.current;
+
+    const promise = (async () => {
+      const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '');
+      try {
+        const res = await apiClient.post('/blogs', {
+          blog_name: slugify(titleText || 'untitled'),
+          blog_title: titleText || 'Untitled',
+          blog_excerpt: '',
+          blog_date: now,
+          blog_date_gmt: now,
+          blog_content: markdownContent,
+          blog_status: 'draft',
+          comment_status: settings.comment_status,
+          notification_status: settings.notification_status,
+          blog_modified: now,
+          blog_modified_gmt: now,
+          tags: '',
+          blog_visibility: settings.blog_visibility,
+          like_count: 0,
+        });
+        const id = res.data?.data?.id;
+        if (!id) throw new Error('Failed to create blog');
+        currentBlogIdRef.current = id;
+        setCurrentBlogId(id);
+        setCreatedAt(new Date());
+        onBlogCreated?.(id);
+        return id;
+      } catch (err: any) {
+        console.error('ensureBlogExists failed', err);
+        const msg = err?.response?.data?.message || err?.message || 'Network error';
+        throw new Error(msg);
+      }
+    })();
+
+    blogCreationPromiseRef.current = promise;
+    // Clear ref regardless of success/failure so the next attempt retries
+    promise.finally(() => { blogCreationPromiseRef.current = null; });
+    return promise;
+  }, [titleText, markdownContent, settings, onBlogCreated]);
 
   const handleSaveDraft = useCallback(async () => {
     if (!titleText.trim() && !markdownContent.trim()) return;
@@ -787,9 +807,13 @@ export const BlogEditor = ({
       setLatestVersionId(res.data.data.id);
       setCurrentVersionNumber(res.data.data.version_number);
       setLastDraftSavedAt(new Date());
+      setUnsavedChangesAt(null);
       setPublishStatus((s) => s === 'unsaved' ? 'draft' : s);
       setSaveStatus('saved');
-    } catch {
+    } catch (err: any) {
+      console.error('Save draft failed', err);
+      const msg = err?.response?.data?.message || err?.message || 'Network error';
+      try { alert('Failed to save draft: ' + msg); } catch {}
       setSaveStatus('error');
     }
   }, [ensureBlogExists, titleText, markdownContent, latestVersionId, settings]);
@@ -805,9 +829,14 @@ export const BlogEditor = ({
         ...settings,
       });
       setLastPublishedAt(new Date());
+      setPublishedVersionNumber(currentVersionNumber);
+      setUnsavedChangesAt(null);
       setPublishStatus('published');
       setSaveStatus('saved');
-    } catch {
+    } catch (err: any) {
+      console.error('Publish failed', err);
+      const msg = err?.response?.data?.message || err?.message || 'Network error';
+      try { alert('Publish failed: ' + msg); } catch {}
       setSaveStatus('error');
     } finally {
       setIsPublishing(false);
@@ -828,12 +857,126 @@ export const BlogEditor = ({
   const handleFetchVersions = useCallback(async () => {
     if (!currentBlogId) return;
     try {
-      const res = await apiClient.get(`/blogs/${currentBlogId}/versions`);
-      setVersions(res.data.data ?? []);
-    } catch {
+      // Fetch blog metadata
+      const blogRes = await apiClient.get(`/blogs/${currentBlogId}`);
+      const blogData = blogRes?.data?.data ?? null;
+
+      if (blogData) {
+        try {
+          setSettings({
+            blog_visibility: blogData.blog_visibility ?? 'public',
+            comment_status: blogData.comment_status ?? 'open',
+            notification_status: blogData.notification_status ?? 'all',
+            like_visibility: blogData.like_visibility ?? 'open',
+            view_visibility: blogData.view_visibility ?? 'open',
+          });
+        } catch {}
+        try { setCreatedAt(blogData.blog_date_created ? new Date(blogData.blog_date_created) : null); } catch {}
+        try { setLastPublishedAt(blogData.blog_date_published ? new Date(blogData.blog_date_published) : null); } catch {}
+        setPublishStatus((blogData.blog_status === 'publish') ? 'published' : 'draft');
+      }
+
+      const versRes = await apiClient.get(`/blogs/${currentBlogId}/versions`);
+      const versData = versRes?.data?.data ?? [];
+      setVersions(versData);
+
+      if (Array.isArray(versData) && versData.length > 0) {
+        // pick the most recent version by version_number
+        const sorted = [...versData].sort((a:any, b:any) => (b.version_number ?? 0) - (a.version_number ?? 0));
+        const latest = sorted[0];
+        setLatestVersionId(latest.id);
+        setCurrentVersionNumber(latest.version_number);
+
+        // find the latest published/committed version for the published version number
+        const latestPublished = sorted.find((v: any) => v.status === 'published' || v.status === 'committed');
+        if (latestPublished) {
+          setPublishedVersionNumber(latestPublished.version_number);
+          try { setLastPublishedAt(latestPublished.published_at ? new Date(latestPublished.published_at) : null); } catch {}
+        }
+
+        // set draft saved timestamp from the current draft version
+        const latestDraft = sorted.find((v: any) => v.status === 'draft');
+        if (latestDraft && latestDraft.draft_saved_at) {
+          try { setLastDraftSavedAt(new Date(latestDraft.draft_saved_at)); } catch {}
+        }
+        const content = latest.blog_content ?? '';
+        setMarkdownContent(content);
+        setTitleText(latest.blog_title ?? (blogData?.blog_title ?? ''));
+
+        const editor = lexicalEditorRef.current;
+        if (editor) {
+          isPencilSyncingRef.current = true;
+          editor.update(() => {
+            try { $convertFromMarkdownString(content, TRANSFORMERS); } catch {}
+          });
+          setTimeout(() => { isPencilSyncingRef.current = false; }, 100);
+        }
+      } else if (blogData) {
+        const content = blogData.blog_content ?? '';
+        setMarkdownContent(content);
+        setTitleText(blogData.blog_title ?? '');
+        const editor = lexicalEditorRef.current;
+        if (editor) {
+          isPencilSyncingRef.current = true;
+          editor.update(() => {
+            try { $convertFromMarkdownString(content, TRANSFORMERS); } catch {}
+          });
+          setTimeout(() => { isPencilSyncingRef.current = false; }, 100);
+        }
+      }
+
+    } catch (err) {
+      console.error('Failed to fetch versions/blog data', err);
       setVersions([]);
     }
   }, [currentBlogId]);
+
+  useEffect(() => {
+    // Resolve initial blogId prop (accepts numeric id, "blog-<id>", or slug)
+    const resolveBlogId = async () => {
+      if (!blogIdProp) return;
+      if (typeof blogIdProp === 'number') {
+        setCurrentBlogId(blogIdProp);
+        return;
+      }
+      const s = String(blogIdProp);
+      const blogDashMatch = s.match(/^blog-(\d+)$/i);
+      if (blogDashMatch) {
+        setCurrentBlogId(Number(blogDashMatch[1]));
+        return;
+      }
+      const numeric = Number(s);
+      if (!isNaN(numeric) && s.trim() !== '') {
+        setCurrentBlogId(numeric);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/blogs/resolve?slug=${encodeURIComponent(s)}`);
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!json.success || !json.data) return;
+        const apiId = json.data?.apiData?.id ?? null;
+        if (apiId) {
+          setCurrentBlogId(apiId);
+        } else {
+          // Prefill editor for local/MDX blogs when no numeric API id exists
+          try { setMarkdownContent(json.data.content ?? ''); } catch {}
+          try { setTitleText(json.data.metadata?.title ?? ''); } catch {}
+          try { setPublishStatus((json.data.apiData?.blog_status === 'publish') ? 'published' : 'draft'); } catch {}
+        }
+      } catch (err) {
+        console.error('Failed to resolve blog slug', err);
+      }
+    };
+
+    resolveBlogId();
+  }, [blogIdProp]);
+
+  useEffect(() => {
+    if (!currentBlogId) return;
+    handleFetchVersions();
+  }, [currentBlogId, handleFetchVersions]);
 
   const handleVersionPublish = useCallback(async (versionId: number) => {
     if (!currentBlogId) return;
@@ -871,8 +1014,9 @@ export const BlogEditor = ({
     } catch {}
   }, [currentBlogId]);
 
-  // Keep ref in sync so auto-save effect always calls the latest version
+  // Keep refs in sync so auto-save effect always calls the latest version
   saveDraftFnRef.current = handleSaveDraft;
+  currentBlogIdRef.current = currentBlogId;
 
   // Handle palette item selection
   const handlePaletteSelect = useCallback((item: EditorSlashMenuOption) => {
@@ -898,11 +1042,13 @@ export const BlogEditor = ({
           right: editorRight,
           zIndex: 40,
           background: 'var(--background, #fff)',
+            paddingBottom: 80,
         } : {
           display: 'flex',
           flexDirection: 'column',
           width: '100%',
           height: '100%',
+            paddingBottom: 80,
           position: 'relative',
         }}
       >
@@ -1028,7 +1174,21 @@ export const BlogEditor = ({
           .btp-tag { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: rgba(107,114,128,1); min-width: 28px; text-align: center; }
         `}</style>
 
-        {/* ── Focus mode header ── */}
+        {/* ── Main-page header (fixed, Back / Save + Publish) ── */}
+        {!isContentFocused && (
+          <div style={{ position: 'fixed', top: 0, left: editorLeft, right: editorRight, zIndex: 50 }}>
+            <FullscreenHeader
+              onBack={() => { window.location.href = '/admin'; }}
+              onSave={handleSaveDraft}
+              isSaving={saveStatus === 'saving'}
+              onPublish={handlePublish}
+              isPublishing={isPublishing}
+              showCenteredTitle={false}
+            />
+          </div>
+        )}
+
+        {/* ── Focus mode header (fixed, animated) ── */}
         <AnimatePresence initial={false}>
           {isContentFocused && (
             <motion.div
@@ -1039,18 +1199,20 @@ export const BlogEditor = ({
               transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
               style={{ position: 'fixed', top: 0, left: editorLeft, right: editorRight, zIndex: 50 }}
             >
-              <FullscreenHeader onDone={handleDone} title={titleText} showCenteredTitle />
+              <FullscreenHeader
+                onDone={handleDone}
+                title={titleText}
+                showCenteredTitle
+                lastDraftSavedAt={lastDraftSavedAt}
+                draftVersionNumber={currentVersionNumber}
+                saveStatus={saveStatus}
+              />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Header spacer */}
-        <motion.div
-          initial={false}
-          animate={{ height: isContentFocused ? 48 : 0 }}
-          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-          style={{ flexShrink: 0 }}
-        />
+        {/* Header spacer — always 48px since both modes have a fixed header */}
+        <div style={{ flexShrink: 0, height: 48 }} />
 
         {/* ── Title + meta (hidden in content focus mode) ── */}
         {!isContentFocused && (
@@ -1073,10 +1235,12 @@ export const BlogEditor = ({
             <BlogEditorMeta
               publishStatus={publishStatus}
               createdAt={createdAt}
-              updatedAt={updatedAt}
-              versionNumber={currentVersionNumber}
+              draftVersionNumber={currentVersionNumber}
+              publishedVersionNumber={publishedVersionNumber}
               lastDraftSavedAt={lastDraftSavedAt}
               lastPublishedAt={lastPublishedAt}
+              unsavedChangesAt={unsavedChangesAt}
+              saveStatus={saveStatus}
             />
           </div>
         )}
@@ -1086,16 +1250,11 @@ export const BlogEditor = ({
           {!isContentFocused && (
             <BlogActionBar
               key="blog-action-bar"
-              onSaveDraft={handleSaveDraft}
-              onPublish={handlePublish}
-              isPublishing={isPublishing}
               settings={settings}
               onSettingChange={handleSettingChange}
               versions={versions}
               onFetchVersions={handleFetchVersions}
-              onVersionPublish={handleVersionPublish}
               onVersionRevert={handleVersionRevert}
-              onUnpublish={publishStatus === 'published' ? handleUnpublish : undefined}
               onDeleteBlog={currentBlogId ? handleDeleteBlog : undefined}
             />
           )}
@@ -1180,7 +1339,7 @@ export const BlogEditor = ({
 
             {/* Video embed example */}
             <Video
-              src=""
+              src={null}
               muted
               loop={false}
               variant="filled"
@@ -1189,7 +1348,7 @@ export const BlogEditor = ({
 
             {/* Image example */}
             <Image
-              src=""
+              src={null}
               width={260}
               height={80}
               variant="filled"

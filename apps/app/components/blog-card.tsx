@@ -53,7 +53,10 @@ export const BlogCard = ({ blog }: BlogCardProps) => {
     }
   };
 
-  const href = isAdmin ? `/admin/blog/${(blog.apiData as any)?.blog_name ?? blog.slug}` : `/blog/${blog.slug}`;
+  const apiId = (blog.apiData as any)?.id;
+  const href = isAdmin
+    ? `/admin/blog/${apiId ? `blog-${apiId}` : ((blog.apiData as any)?.blog_name ?? blog.slug)}`
+    : `/blog/${blog.slug}`;
 
   // API-exposed properties (apiData may be undefined for local MDX files)
   const api = (blog.apiData || {}) as any;
@@ -79,23 +82,12 @@ export const BlogCard = ({ blog }: BlogCardProps) => {
           </p>
         )}
       </header>
-      <footer className="mt-1 flex items-center justify-between font-mono text-sm uppercase tracking-wider opacity-50 dark:opacity-40">
-        <div className="flex items-center space-x-3 text-gray-600 dark:text-gray-400">
-          <div title={visibility === 'private' ? 'Private' : 'Public'} aria-label={`visibility-${visibility}`}>
-            {visibility === 'private' ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${status === 'draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-              {status === 'draft' ? 'Draft' : 'Published'}
-            </span>
-            {version && <span className="text-xs text-neutral-600 dark:text-neutral-400">v{version}</span>}
-          </div>
-
-          <div className="flex items-center space-x-3 ml-2">
-            <div title={commentOpen ? `${comments} comments` : 'Comments disabled'} className="flex items-center space-x-1">
-              {commentOpen ? <MessageSquare className="w-4 h-4" /> : <MessageSquare className="w-4 h-4 opacity-40" />}
-              <span className="text-xs">{commentOpen ? comments : 'off'}</span>
+      <footer className="mt-1 flex items-center space-x-10 font-mono text-sm uppercase tracking-wider opacity-50 dark:opacity-40">
+        <div className="flex items-center text-gray-600 dark:text-gray-400">
+          <div className="flex items-center space-x-3">
+            <div title={viewOpen ? `${views} views` : 'Views disabled'} className="flex items-center space-x-1">
+              {viewOpen ? <Eye className="w-4 h-4" /> : <Eye className="w-4 h-4 opacity-40" />}
+              <span className="text-xs">{viewOpen ? views : 'off'}</span>
             </div>
 
             <div title={likeOpen ? `${likes} likes` : 'Likes disabled'} className="flex items-center space-x-1">
@@ -103,20 +95,32 @@ export const BlogCard = ({ blog }: BlogCardProps) => {
               <span className="text-xs">{likeOpen ? likes : 'off'}</span>
             </div>
 
-            <div title={viewOpen ? `${views} views` : 'Views disabled'} className="flex items-center space-x-1">
-              {viewOpen ? <Eye className="w-4 h-4" /> : <Eye className="w-4 h-4 opacity-40" />}
-              <span className="text-xs">{viewOpen ? views : 'off'}</span>
+            <div title={commentOpen ? `${comments} comments` : 'Comments disabled'} className="flex items-center space-x-1">
+              {commentOpen ? <MessageSquare className="w-4 h-4" /> : <MessageSquare className="w-4 h-4 opacity-40" />}
+              <span className="text-xs">{commentOpen ? comments : 'off'}</span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
           <time dateTime={blog.metadata.publishedAt} className="text-xs text-neutral-600 dark:text-neutral-400">
-            {formatDate(blog.metadata.publishedAt)}
+          {formatDate(blog.metadata.publishedAt)}
           </time>
           <span>·</span>
           <span className="text-xs">{blog.readingTime} MIN READ</span>
         </div>
+
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${status === 'draft' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+              {status === 'draft' ? 'Draft' : 'Published'}
+            </span>
+            {version && <span className="text-xs text-neutral-600 dark:text-neutral-400">v{version}</span>}
+          </div>
+          <div title={visibility === 'private' ? 'Private' : 'Public'} aria-label={`visibility-${visibility}`}>
+            {visibility === 'private' ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+          </div>     
+        </div>     
       </footer>
     </article>
   );

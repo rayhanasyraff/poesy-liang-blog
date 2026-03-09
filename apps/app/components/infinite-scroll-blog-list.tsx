@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import type { Blog, ApiBlog } from "@/types/blog";
+import type { Blog, ApiBlog, BlogVersionSummary } from "@/types/blog";
 import { BlogCard } from './blog-card';
 import { usePathname, useRouter } from 'next/navigation';
 import Separator from "./shared/separator";
@@ -100,7 +100,65 @@ async function fetchServerPage(
   return { rows, nextOffset };
 }
 
+// Admin version: overlays the latest saved version (draft or published) onto each blog card
+async function fetchAdminServerPage(
+  limit: number,
+  offset: number
+): Promise<{ rows: Blog[]; nextOffset: number | undefined }> {
+  const allBlogs = await fetchAllBlogs();
+
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  const start = offset;
+  const end = start + limit;
+  const pageBlogs = allBlogs.slice(start, end);
+  const nextOffset = end < allBlogs.length ? end : undefined;
+
+  const rows = await Promise.all(
+    pageBlogs.map(async (blog) => {
+      const apiId = (blog.apiData as any)?.id;
+      if (!apiId) return blog;
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/blogs/${apiId}/versions?limit=1&offset=0`,
+          { headers: { 'Content-Type': 'application/json' }, cache: 'no-store' }
+        );
+        if (!res.ok) return blog;
+        const data = await res.json();
+        const versions: BlogVersionSummary[] = data.data ?? [];
+        if (versions.length === 0) return blog;
+        const latest = versions[0]; // ordered DESC by version_number
+        const latestContent = latest.blog_content ?? blog.content;
+        const wordCount = latestContent.trim()
+          ? latestContent.split(/\s+/).filter(Boolean).length
+          : 0;
+        return {
+          ...blog,
+          content: latestContent,
+          readingTime: Math.max(1, Math.ceil(wordCount / 200)),
+          tags: latest.tags ?? blog.tags,
+          metadata: {
+            ...blog.metadata,
+            title: latest.blog_title || blog.metadata.title,
+            summary: latest.blog_excerpt || blog.metadata.summary,
+          },
+          apiData: blog.apiData
+            ? { ...blog.apiData, blog_version: latest.version_number }
+            : blog.apiData,
+        };
+      } catch {
+        return blog;
+      }
+    })
+  );
+
+  return { rows, nextOffset };
+}
+
 export default function InfiniteScrollBlogList() {
+
+  const pathname = usePathname();
+  const isAdmin = typeof pathname === 'string' && pathname.startsWith('/admin');
 
   const {
     status,
@@ -110,8 +168,11 @@ export default function InfiniteScrollBlogList() {
     fetchNextPage,
     hasNextPage,
   } = useInfiniteQuery({
-    queryKey: ['blog-posts'],
-    queryFn: (ctx) => fetchServerPage(5, ctx.pageParam),
+    queryKey: [isAdmin ? 'admin-blog-posts' : 'blog-posts'],
+    queryFn: (ctx) =>
+      isAdmin
+        ? fetchAdminServerPage(5, ctx.pageParam)
+        : fetchServerPage(5, ctx.pageParam),
     getNextPageParam: (lastGroup) => lastGroup.nextOffset,
     initialPageParam: 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -119,8 +180,6 @@ export default function InfiniteScrollBlogList() {
   });
 
   const allRows = data ? data.pages.flatMap((d) => d.rows) : [];
-  const pathname = usePathname();
-  const isAdmin = typeof pathname === 'string' && pathname.startsWith('/admin');
   const displayRows = isAdmin ? allRows : allRows.filter((b) => b.apiData && (b.apiData.blog_status === 'publish') && (b.apiData.blog_visibility === 'public'));
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -203,18 +262,23 @@ export default function InfiniteScrollBlogList() {
     setUndoBlogId(null);
   };
 
-  const leadingActions = (blog: Blog) => (
-    <LeadingActions>
-      <SwipeAction
-        onClick={() => router.push(`/admin/blog/${(blog.apiData as any)?.blog_name ?? blog.slug}`)}
-      >
-        <div className="h-full flex items-center px-4 bg-sky-600 text-white rounded-l-md">
-          <Edit3 className="w-5 h-5" />
-          <span className="ml-2 text-sm font-medium">Edit</span>
-        </div>
-      </SwipeAction>
-    </LeadingActions>
-  );
+  const leadingActions = (blog: Blog) => {
+    const api = (blog.apiData as any) ?? {};
+    const slug = api.id ? `blog-${api.id}` : (api.blog_name ?? blog.slug);
+
+    return (
+      <LeadingActions>
+        <SwipeAction
+          onClick={() => router.push(`/admin/blog/${slug}/edit`)}
+        >
+          <div className="h-full flex items-center px-4 bg-sky-600 text-white rounded-l-md">
+            <Edit3 className="w-5 h-5" />
+            <span className="ml-2 text-sm font-medium">Edit</span>
+          </div>
+        </SwipeAction>
+      </LeadingActions>
+    );
+  };
 
   const trailingActions = (blog: Blog) => (
     <TrailingActions>
@@ -321,6 +385,7 @@ export default function InfiniteScrollBlogList() {
       okText="Delete"
       okButtonProps={{ danger: true }}
       cancelText="Cancel"
+      mask={{ closable: true }}
       >
         <div className="py-4">
           <p>Are you sure you want to delete "{candidateBlog?.metadata?.title ?? ''}"? This action can be undone briefly via undo.</p>

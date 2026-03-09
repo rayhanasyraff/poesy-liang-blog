@@ -73,7 +73,6 @@ export const saveBlogDraft = async (
   data: {
     blog_title: string;
     blog_content: string;
-    parent_version_id?: number | null;
   } & Partial<BlogSettings>
 ): Promise<{ id: number; version_number: number }> => {
   const res = await apiClient.post(`/blogs/${blogId}/versions`, data);

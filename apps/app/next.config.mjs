@@ -1,3 +1,4 @@
+import million from "million/compiler";
 import redirects from './redirects.js'
 
 const NEXT_PUBLIC_SERVER_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -25,4 +26,4 @@ const nextConfig = {
   redirects,
 }
 
-export default nextConfig
+export default million.next(nextConfig, { auto: true })

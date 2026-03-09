@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { fetchBlogs, fetchBlogById, insertBlog } from "../services/blogService";
 import { config } from "../config/config";
+import { saveDraft } from "../services/versioningService";
 
 export async function getAllBlogsFromApi(req: Request, res: Response): Promise<void> {
   try {
@@ -80,10 +81,28 @@ export async function createBlog(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    const blogId = result.id;
+
+    // Create v1 draft version automatically
+    try {
+      await saveDraft(blogId!, {
+        blog_title: blogData.blog_title ?? 'Untitled',
+        blog_content: blogData.blog_content ?? '',
+        blog_excerpt: blogData.blog_excerpt ?? '',
+        tags: blogData.tags ?? null,
+        blog_visibility: blogData.blog_visibility ?? 'public',
+        comment_status: blogData.comment_status ?? 'open',
+        like_visibility: blogData.like_visibility ?? 'open',
+        view_visibility: blogData.view_visibility ?? 'open',
+      });
+    } catch (err) {
+      console.warn('Warning: blog created but failed to create v1 draft:', err);
+    }
+
     res.status(201).json({
       success: true,
       message: result.message || "Blog created successfully",
-      data: { id: result.id }
+      data: { id: blogId }
     });
   } catch (error) {
     console.error("Error in createBlog:", error);

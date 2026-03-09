@@ -7,14 +7,16 @@ export type BlogPublishStatus = 'unsaved' | 'draft' | 'published';
 export interface BlogEditorMetaProps {
   publishStatus: BlogPublishStatus;
   createdAt: Date | null;
-  updatedAt: Date | null;
-  versionNumber: number | null;
+  draftVersionNumber: number | null;
+  publishedVersionNumber: number | null;
   lastDraftSavedAt: Date | null;
   lastPublishedAt: Date | null;
+  unsavedChangesAt: Date | null;
+  saveStatus?: 'idle' | 'saving' | 'saved' | 'error';
 }
 
-function fmt(date: Date | null, fallback: string): string {
-  if (!date) return fallback;
+function fmtTime(date: Date | null): string {
+  if (!date) return '—';
   const sameYear = date.getFullYear() === new Date().getFullYear();
   return date.toLocaleString(undefined, {
     month: 'short',
@@ -30,6 +32,20 @@ function MetaItem({ label, value }: { label: string; value: string }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
       <span style={{ color: 'var(--muted-foreground, rgba(0,0,0,0.4))', fontSize: 11 }}>{label}</span>
+      <span style={{ color: 'var(--foreground, rgba(0,0,0,0.65))', fontSize: 11, fontWeight: 500 }}>{value}</span>
+    </span>
+  );
+}
+
+function UnsavedItem({ label, value }: { label: string; value: string }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+      <span style={{
+        color: 'var(--muted-foreground, rgba(0,0,0,0.4))',
+        fontSize: 11,
+        textDecoration: 'underline',
+        textDecorationStyle: 'dotted',
+      }}>{label}</span>
       <span style={{ color: 'var(--foreground, rgba(0,0,0,0.65))', fontSize: 11, fontWeight: 500 }}>{value}</span>
     </span>
   );
@@ -63,14 +79,23 @@ function StatusBadge({ status }: { status: BlogPublishStatus }) {
   );
 }
 
+function versionStr(n: number | null): string {
+  return n != null ? `v${n}` : '';
+}
+
 export function BlogEditorMeta({
   publishStatus,
   createdAt,
-  updatedAt,
-  versionNumber,
+  draftVersionNumber,
+  publishedVersionNumber,
   lastDraftSavedAt,
   lastPublishedAt,
+  unsavedChangesAt,
+  saveStatus,
 }: BlogEditorMetaProps) {
+  const ver = versionStr(draftVersionNumber);
+  const pubVer = versionStr(publishedVersionNumber);
+
   return (
     <div style={{
       display: 'flex',
@@ -81,16 +106,42 @@ export function BlogEditorMeta({
       flexShrink: 0,
     }}>
       <StatusBadge status={publishStatus} />
-      <Dot />
-      <MetaItem label="Created"   value={fmt(createdAt,        '—')} />
-      <Dot />
-      <MetaItem label="Updated"   value={fmt(updatedAt,        '—')} />
-      <Dot />
-      <MetaItem label="Version"   value={versionNumber != null ? `v${versionNumber}` : '—'} />
-      <Dot />
-      <MetaItem label="Draft"     value={fmt(lastDraftSavedAt, 'Not saved as draft yet')} />
-      <Dot />
-      <MetaItem label="Published" value={fmt(lastPublishedAt,  'Not published yet')} />
+      {createdAt && (
+        <>
+          <Dot />
+          <MetaItem label="Created" value={fmtTime(createdAt)} />
+        </>
+      )}
+      {saveStatus === 'saving' && !lastDraftSavedAt && (
+        <>
+          <Dot />
+          <MetaItem label="Autosaved Draft" value="Saving…" />
+        </>
+      )}
+      {saveStatus === 'error' && !lastDraftSavedAt && (
+        <>
+          <Dot />
+          <MetaItem label="Autosaved Draft" value="Save failed" />
+        </>
+      )}
+      {lastDraftSavedAt && (
+        <>
+          <Dot />
+          <UnsavedItem
+            label={saveStatus === 'saving' ? 'Saving…' : 'Autosaved Draft'}
+            value={saveStatus === 'saving' ? '' : `${ver}${ver ? ' · ' : ''}${fmtTime(lastDraftSavedAt)}`}
+          />
+        </>
+      )}
+      {lastPublishedAt && (
+        <>
+          <Dot />
+          <MetaItem
+            label="Published"
+            value={`${pubVer}${pubVer ? ' · ' : ''}${fmtTime(lastPublishedAt)}`}
+          />
+        </>
+      )}
     </div>
   );
 }

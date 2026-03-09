@@ -92,7 +92,7 @@ export async function insertBlog(blog: BlogPost): Promise<{ success: boolean; me
     return {
       success: response.success,
       message: response.message,
-      id: response.data && !Array.isArray(response.data) ? String((response.data as any).id) : undefined
+      id: response.id != null ? String(response.id) : (response.data && !Array.isArray(response.data) ? String((response.data as any).id) : undefined)
     };
   } catch (error) {
     console.error("Error inserting blog:", error);

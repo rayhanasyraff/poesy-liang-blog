@@ -28,15 +28,34 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response) {
-      // Server responded with error
-      console.error('API Error:', error.response.data);
-    } else if (error.request) {
-      // Request made but no response
-      console.error('Network Error:', error.message);
-    } else {
-      // Something else happened
-      console.error('Error:', error.message);
+    try {
+      const url = error.config?.url ?? '<unknown url>';
+      const method = (error.config?.method || '').toUpperCase();
+
+      if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+        console.error(`API Error: ${status} ${method} ${url}`, data);
+        if (typeof window !== 'undefined') {
+          // Expose last API error to window for easier debugging in dev
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (window as any).__lastApiError = { status, method, url, data };
+        }
+      } else if (error.request) {
+        console.error('Network Error:', error.message, error.request);
+        if (typeof window !== 'undefined') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (window as any).__lastApiError = { message: error.message, method, url, request: error.request };
+        }
+      } else {
+        console.error('Error:', error.message);
+        if (typeof window !== 'undefined') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (window as any).__lastApiError = { message: error.message, method, url };
+        }
+      }
+    } catch (e) {
+      try { console.error('Error logging failed:', e); } catch {}
     }
     return Promise.reject(error);
   }

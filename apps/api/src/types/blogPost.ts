@@ -47,6 +47,7 @@ export interface BlogVersion {
 export interface BlogPostApiResponse {
   success: boolean;
   message?: string;
+  id?: number;
   data?: BlogPost | BlogPost[];
   pagination?: {
     total_rows: number;

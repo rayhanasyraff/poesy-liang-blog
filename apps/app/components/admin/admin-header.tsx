@@ -21,8 +21,8 @@ interface AdminHeaderProps {
 export function AdminHeader({ user }: AdminHeaderProps) {
   const pathname = usePathname()
 
-  // Hide header entirely on the new blog creation page
-  if (pathname && pathname.startsWith('/admin/blog/new')) return null
+  // Hide header entirely on the blog editor pages (new and edit)
+  if (pathname && (pathname.startsWith('/admin/blog/new') || pathname.endsWith('/edit'))) return null
 
   return (
     <header>

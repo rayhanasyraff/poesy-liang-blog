@@ -1,6 +1,6 @@
 import type { Blog, ApiBlog } from '@/types/blog';
 import { convertApiBlogToBlog } from './blog-utils';
-import { fetchBlogs, fetchBlogById } from '@/api/api';
+import { fetchBlogs, fetchBlogById, fetchBlogVersions } from '@/api/api';
 
 // Cache for all API blogs
 let allApiBlogsCache: ApiBlog[] | null = null;
@@ -74,9 +74,9 @@ export async function fetchBlogsCompatible(): Promise<Blog[]> {
       return [];
     }
 
-    // Filter for published blog posts only (include drafts for testing)
+    // Filter for published blog posts only
     const publishedApiBlogs = apiBlogs.filter(blog =>
-      (blog.blog_status === 'publish' || blog.blog_status === 'draft') &&
+      blog.blog_status === 'publish' &&
       blog.blog_content.trim() !== '' &&
       blog.blog_title.trim() !== '' &&
       blog.blog_title !== 'Auto Draft'
@@ -99,7 +99,7 @@ export async function fetchBlogsCompatible(): Promise<Blog[]> {
   }
 }
 
-// Function to get a specific blog by slug
+// Function to get a specific published blog by slug (user-facing)
 export async function getBlogBySlug(slug: string): Promise<Blog | null> {
   try {
     // Check if slug starts with "blog-" and extract ID
@@ -108,6 +108,8 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
       if (!isNaN(id)) {
         const apiBlog = await fetchBlogFromApiById(id);
         if (apiBlog) {
+          // User side: only show published blogs
+          if (apiBlog.blog_status !== 'publish') return null;
           return convertApiBlogToBlog(apiBlog);
         }
       }
@@ -117,13 +119,13 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
     const encodedSlug = encodeURIComponent(slug).toLowerCase();
     const decodedSlug = decodeURIComponent(slug).toLowerCase();
 
-    // Try fetching all API blogs to find by blog_name (slug)
+    // Try fetching all API blogs to find by blog_name (slug) — published only
     try {
-      const apiBlogs = await fetchAllBlogsFromApi(); // Fetch ALL blogs with caching
+      const apiBlogs = await fetchAllBlogsFromApi();
       const matchingBlog = apiBlogs.find(blog => {
+        if (blog.blog_status !== 'publish') return false;
         const blogSlugRaw = (blog.blog_name || '').toString();
         const blogSlug = blogSlugRaw.toLowerCase();
-        // Try exact match, decoded match, or encoded match
         return blogSlug === slug.toLowerCase() ||
                blogSlug === encodedSlug ||
                blogSlug === decodedSlug ||
@@ -136,7 +138,7 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
       console.warn('Could not search API blogs by slug:', apiError);
     }
 
-    // Fall back to searching all blogs (MDX + API)
+    // Fall back to searching all published blogs
     const allBlogs = await fetchBlogsCompatible();
     return allBlogs.find(blog => {
       const blogSlug = blog.slug.toLowerCase();
@@ -147,6 +149,68 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
     }) || null;
   } catch (error) {
     console.error('Error fetching blog by slug:', error);
+    return null;
+  }
+}
+
+// Function to get a blog for admin preview — shows latest saved version (draft or published)
+export async function getAdminBlogBySlug(slug: string): Promise<Blog | null> {
+  try {
+    let apiBlog: ApiBlog | null = null;
+
+    // Resolve slug to ApiBlog (no status filter — admins see all)
+    if (slug.startsWith('blog-')) {
+      const id = parseInt(slug.replace('blog-', ''));
+      if (!isNaN(id)) {
+        apiBlog = await fetchBlogFromApiById(id);
+      }
+    }
+
+    if (!apiBlog) {
+      const encodedSlug = encodeURIComponent(slug).toLowerCase();
+      const decodedSlug = decodeURIComponent(slug).toLowerCase();
+      const apiBlogs = await fetchAllBlogsFromApi();
+      apiBlog = apiBlogs.find(blog => {
+        const blogSlug = (blog.blog_name || '').toString().toLowerCase();
+        return blogSlug === slug.toLowerCase() ||
+               blogSlug === encodedSlug ||
+               blogSlug === decodedSlug ||
+               decodeURIComponent(blogSlug) === decodedSlug;
+      }) ?? null;
+    }
+
+    if (!apiBlog) return null;
+
+    // Fetch all versions and pick the latest by version_number
+    try {
+      const versions = await fetchBlogVersions(apiBlog.id);
+      if (versions && versions.length > 0) {
+        const latest = versions.reduce((a, b) =>
+          b.version_number > a.version_number ? b : a
+        );
+        // Overlay the latest version's content/title onto the base blog
+        const base = convertApiBlogToBlog(apiBlog);
+        return {
+          ...base,
+          content: latest.blog_content ?? base.content,
+          tags: latest.tags ?? base.tags,
+          metadata: {
+            ...base.metadata,
+            title: latest.blog_title || base.metadata.title,
+            summary: latest.blog_excerpt
+              ? latest.blog_excerpt
+              : base.metadata.summary,
+          },
+        };
+      }
+    } catch (versionError) {
+      console.warn('Could not fetch blog versions, falling back to published content:', versionError);
+    }
+
+    // Fall back to published content if no versions found
+    return convertApiBlogToBlog(apiBlog);
+  } catch (error) {
+    console.error('Error fetching admin blog by slug:', error);
     return null;
   }
 }

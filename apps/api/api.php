@@ -4,12 +4,16 @@ header("Content-Type: application/json");
 
 // Allow all origins for CORS
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+header("Access-Control-Allow-Credentials: true");
 
-// Handle preflight
+// Handle preflight (respond explicitly so preflight receives CORS headers)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
+    http_response_code(204);
+    // echo minimal body for some browsers, but main thing is headers
+    echo json_encode(['success' => true, 'message' => 'preflight']);
+    exit;
 }
 
 // Error and exception handling to ensure API always returns JSON on fatal errors
@@ -185,7 +189,7 @@ try {
 
                 $blog_excerpt = $data['blog_excerpt'] ?? '';
                 $blog_content = $data['blog_content'] ?? '';
-                $blog_status = $data['blog_status'] ?? 'draft';
+                $blog_status = in_array($data['blog_status'] ?? '', ['draft','publish','published']) ? $data['blog_status'] : 'draft';
                 $comment_status = $data['comment_status'] ?? 'close';
                 $notification_status = $data['notification_status'] ?? 'none';
                 $now = date('Y-m-d H:i:s');
@@ -234,7 +238,7 @@ try {
                 $fields = [];
                 $types = '';
                 $values = [];
-                $allowed = ['blog_name','blog_title','blog_excerpt','blog_content','blog_status','comment_status','notification_status','tags','blog_visibility','like_count','like_visibility','view_count','view_visibility','blog_version'];
+                $allowed = ['blog_name','blog_title','blog_excerpt','blog_content','blog_status','comment_status','notification_status','tags','blog_visibility','like_count','like_visibility','view_count','view_visibility','blog_version','current_published_version_id'];
                 foreach ($allowed as $f) {
                     if (array_key_exists($f, $data)) {
                         $fields[] = "$f = ?";
@@ -308,7 +312,7 @@ try {
                     $blog_content = $data['blog_content'];
                     $tags = $data['tags'] ?? null;
                     $commit_message = $data['commit_message'] ?? null;
-                    $status = isset($data['status']) && in_array($data['status'], ['draft','committed']) ? $data['status'] : 'draft';
+                    $status = isset($data['status']) && in_array($data['status'], ['draft','committed','published']) ? $data['status'] : 'draft';
                     $created_by = isset($data['created_by']) ? (int)$data['created_by'] : 0;
                     $created_at = $data['created_at'] ?? date('Y-m-d H:i:s');
                     $blog_visibility = isset($data['blog_visibility']) && in_array($data['blog_visibility'], ['public','private']) ? $data['blog_visibility'] : 'public';
@@ -357,10 +361,29 @@ try {
                 $stmt->close();
                 sendJson(['success' => true, 'data' => $row]);
             } elseif ($method === 'PUT') {
-                $stmt = $conn->prepare("UPDATE blog_versions SET status = 'committed' WHERE id = ? AND blog_id = ?");
-                if (!$stmt) throw new Exception($conn->error);
-                $stmt->bind_param('ii', $versionId, $blogId);
-                $stmt->execute();
+                $data = get_request_body();
+                $vAllowed = ['blog_title','blog_content','blog_excerpt','tags','commit_message','status','draft_saved_at','published_at','blog_visibility','comment_status','like_visibility','view_visibility','like_count','view_count'];
+                $fields = []; $types = ''; $values = [];
+                foreach ($vAllowed as $f) {
+                    if (array_key_exists($f, $data)) {
+                        if ($f === 'status' && !in_array($data[$f], ['draft','committed','published'])) continue;
+                        $fields[] = "$f = ?";
+                        $values[] = $data[$f];
+                        $types .= (is_int($data[$f])) ? 'i' : 's';
+                    }
+                }
+                // fallback: if no fields provided, commit the version
+                if (count($fields) === 0) { $fields[] = "status = ?"; $values[] = 'committed'; $types .= 's'; }
+                $types .= 'ii';
+                $values[] = $versionId; $values[] = $blogId;
+                $sql = 'UPDATE blog_versions SET ' . implode(', ', $fields) . ' WHERE id = ? AND blog_id = ?';
+                $stmt = $conn->prepare($sql);
+                if (!$stmt) throw new Exception('Prepare failed: ' . $conn->error);
+                $bind = array_merge([$types], $values);
+                $tmp = [];
+                foreach ($bind as $k => $v) $tmp[$k] = &$bind[$k];
+                call_user_func_array([$stmt, 'bind_param'], $tmp);
+                if (!$stmt->execute()) throw new Exception('Update failed: ' . $stmt->error);
                 $affected = $stmt->affected_rows;
                 $stmt->close();
                 sendJson(['success' => true, 'affected' => $affected]);

@@ -1,10 +1,8 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Save,
-  Send,
   History,
   MessageSquare,
   Globe,
@@ -29,16 +27,11 @@ import type { BlogSettings, BlogVersionSummary } from '@/types/blog';
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface BlogActionBarProps {
-  onSaveDraft: () => void;
-  onPublish: () => void;
-  isPublishing: boolean;
   settings: BlogSettings;
   onSettingChange: (key: keyof BlogSettings, value: string) => void;
   versions: BlogVersionSummary[];
   onFetchVersions: () => void;
-  onVersionPublish: (versionId: number) => void;
   onVersionRevert: (versionId: number) => void;
-  onUnpublish?: () => void;
   onDeleteBlog?: () => void;
 }
 
@@ -74,30 +67,6 @@ function Btn({
   );
 }
 
-function TextBtn({
-  label,
-  title,
-  onClick,
-  disabled,
-}: {
-  label: string;
-  title: string;
-  onClick?: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      onClick={onClick}
-      disabled={disabled}
-      className="h-8 flex items-center justify-center rounded-full px-2 min-w-[2.75rem] text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 disabled:pointer-events-none flex-shrink-0"
-    >
-      {label}
-    </button>
-  );
-}
-
 function Divider() {
   return <div className="w-px h-5 bg-border/60 mx-0.5 flex-shrink-0" />;
 }
@@ -107,9 +76,8 @@ function Divider() {
 function HistoryMenu({
   versions,
   onFetchVersions,
-  onVersionPublish,
   onVersionRevert,
-}: Pick<BlogActionBarProps, 'versions' | 'onFetchVersions' | 'onVersionPublish' | 'onVersionRevert'>) {
+}: Pick<BlogActionBarProps, 'versions' | 'onFetchVersions' | 'onVersionRevert'>) {
   function fmt(iso: string) {
     try {
       return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -139,30 +107,23 @@ function HistoryMenu({
                 <div className="font-medium truncate">v{v.version_number} — {v.blog_title || 'Untitled'}</div>
                 <div className="flex items-center gap-1 mt-0.5">
                   <span className={`inline-block px-1.5 py-px rounded text-[10px] ${
-                    v.status === 'committed'
+                    (v.status === 'published' || v.status === 'committed')
                       ? 'bg-green-500/10 text-green-700 dark:text-green-400'
                       : 'bg-muted text-muted-foreground'
                   }`}>
-                    {v.status}
+                    {v.status === 'committed' ? 'published' : v.status}
                   </span>
-                  <span className="text-muted-foreground">{fmt(v.created_at)}</span>
+                  <span className="text-muted-foreground">{fmt(v.published_at ?? v.created_at)}</span>
                 </div>
               </div>
-              {v.status === 'committed' && (
+              {(v.status === 'published' || v.status === 'committed') && (
                 <div className="flex gap-1 flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onVersionPublish(v.id); }}
-                    className="text-[11px] px-1.5 py-0.5 rounded border border-border bg-transparent hover:bg-accent transition-colors cursor-pointer"
-                  >
-                    Publish
-                  </button>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onVersionRevert(v.id); }}
                     className="text-[11px] px-1.5 py-0.5 rounded border border-border bg-transparent hover:bg-accent transition-colors cursor-pointer"
                   >
-                    Revert
+                    Restore
                   </button>
                 </div>
               )}
@@ -177,16 +138,11 @@ function HistoryMenu({
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function BlogActionBar({
-  onSaveDraft,
-  onPublish,
-  isPublishing,
   settings,
   onSettingChange,
   versions,
   onFetchVersions,
-  onVersionPublish,
   onVersionRevert,
-  onUnpublish,
   onDeleteBlog,
 }: BlogActionBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -259,6 +215,42 @@ export function BlogActionBar({
     };
   }, []);
 
+  // ── Mobile keyboard handling: keep action bar above virtual keyboard ─────────
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const update = () => {
+      const vv = (window as any).visualViewport;
+      let offset = 0;
+      if (vv && typeof vv.height === 'number') {
+        offset = Math.max(0, window.innerHeight - vv.height);
+      } else {
+        offset = 0;
+      }
+      setKeyboardOffset(offset);
+    };
+
+    update();
+
+    const vv = (window as any).visualViewport;
+    vv?.addEventListener?.('resize', update);
+    vv?.addEventListener?.('scroll', update);
+    window.addEventListener('resize', update);
+    window.addEventListener('orientationchange', update);
+    window.addEventListener('focusin', update);
+    window.addEventListener('focusout', update);
+
+    return () => {
+      vv?.removeEventListener?.('resize', update);
+      vv?.removeEventListener?.('scroll', update);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+      window.removeEventListener('focusin', update);
+      window.removeEventListener('focusout', update);
+    };
+  }, []);
+
   const s = settings;
 
   return (
@@ -267,7 +259,14 @@ export function BlogActionBar({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50 }}
+      style={{
+        position: 'fixed',
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        bottom: `calc(${keyboardOffset}px + env(safe-area-inset-bottom))`,
+        transition: 'bottom 160ms ease',
+      }}
       className="flex justify-center px-4 pb-4 pt-2"
     >
       <style>{`.blog-action-scroll::-webkit-scrollbar { display: none; }`}</style>
@@ -282,37 +281,10 @@ export function BlogActionBar({
         >
           <div className="flex items-center gap-0.5 px-2 py-[5px] w-max">
 
-            {/* Save Draft */}
-            <TextBtn
-              label="Draft"
-              title="Save current content as a draft"
-              onClick={onSaveDraft}
-            />
-
-            {/* Publish */}
-            <TextBtn
-              label={isPublishing ? '…' : 'Publish'}
-              title="Publish blog"
-              onClick={onPublish}
-              disabled={isPublishing}
-            />
-
-            {/* Unpublish — only shown when blog is currently published */}
-            {onUnpublish && (
-              <TextBtn
-                label="Unpublish"
-                title="Revert blog to draft (unpublish)"
-                onClick={onUnpublish}
-              />
-            )}
-
-            <Divider />
-
             {/* Version History */}
             <HistoryMenu
               versions={versions}
               onFetchVersions={onFetchVersions}
-              onVersionPublish={onVersionPublish}
               onVersionRevert={onVersionRevert}
             />
 

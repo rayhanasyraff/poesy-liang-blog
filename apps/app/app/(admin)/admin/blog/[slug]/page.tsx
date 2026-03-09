@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { getBlogBySlug } from "@/lib/api";
+import { getAdminBlogBySlug } from "@/lib/api";
 import { CustomMDX } from "@/components/mdx";
 import TableOfContents from "@/components/table-of-contents";
 import { extractHeadings, formatDate } from "@/lib/utils";
@@ -16,7 +16,7 @@ export async function generateMetadata({
   params,
 }: Props): Promise<Metadata | undefined> {
   const { slug } = await params;
-  const blog = await getBlogBySlug(slug);
+  const blog = await getAdminBlogBySlug(slug);
 
   if (!blog) {
     return;
@@ -69,7 +69,7 @@ export async function generateMetadata({
 
 export default async function AdminBlogDetailPage({ params }: Props) {
   const { slug } = await params;
-  const blog = await getBlogBySlug(slug);
+  const blog = await getAdminBlogBySlug(slug);
   const headings = blog ? extractHeadings(blog.content) : [];
 
   if (!blog) {

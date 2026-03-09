@@ -17,10 +17,12 @@ export function convertApiBlogToBlog(apiBlog: ApiBlog): Blog {
   const getPublishedDate = (apiBlog: ApiBlog): string => {
     // Try different date fields in order of preference
     const potentialDates = [
-      apiBlog.blog_date,
-      apiBlog.blog_date_gmt,
-      apiBlog.blog_modified,
-      apiBlog.blog_modified_gmt,
+      apiBlog.blog_date_published,
+      apiBlog.blog_date_published_gmt,
+      apiBlog.blog_date_modified,
+      apiBlog.blog_date_modified_gmt,
+      apiBlog.blog_date_created,
+      apiBlog.blog_date_created_gmt,
     ];
 
     for (const dateCandidate of potentialDates) {

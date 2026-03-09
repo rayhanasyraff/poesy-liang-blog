@@ -696,6 +696,44 @@ export function BottomToolbar({ lexicalEditorRef, contentViewMode, onViewModeCha
     return () => unregister?.();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Mobile keyboard handling: keep toolbar above virtual keyboard ────────────
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const update = () => {
+      const vv = (window as any).visualViewport;
+      let offset = 0;
+      if (vv && typeof vv.height === 'number') {
+        // On many mobile browsers the visualViewport height shrinks when the keyboard opens
+        offset = Math.max(0, window.innerHeight - vv.height);
+      } else {
+        offset = 0;
+      }
+      setKeyboardOffset(offset);
+    };
+
+    update();
+
+    const vv = (window as any).visualViewport;
+    vv?.addEventListener?.('resize', update);
+    vv?.addEventListener?.('scroll', update);
+    window.addEventListener('resize', update);
+    window.addEventListener('orientationchange', update);
+    window.addEventListener('focusin', update);
+    window.addEventListener('focusout', update);
+
+    return () => {
+      vv?.removeEventListener?.('resize', update);
+      vv?.removeEventListener?.('scroll', update);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+      window.removeEventListener('focusin', update);
+      window.removeEventListener('focusout', update);
+    };
+  }, []);
+
+
   // ── View content ──────────────────────────────────────────────────────────
 
   const mainView = (
@@ -707,7 +745,7 @@ export function BottomToolbar({ lexicalEditorRef, contentViewMode, onViewModeCha
       transition={{ duration: 0.12 }}
       className="flex items-center gap-0.5 px-2 py-[5px] w-max"
     >
-      {/* ── Add Block ───────────────────────────────────── */}
+{/* ── Add Block ───────────────────────────────────── */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <ToolbarButton icon={<Plus size={18} />} title="Add block" />
@@ -1040,7 +1078,14 @@ export function BottomToolbar({ lexicalEditorRef, contentViewMode, onViewModeCha
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50 }}
+      style={{
+        position: 'fixed',
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        bottom: `calc(${keyboardOffset}px + env(safe-area-inset-bottom))`,
+        transition: 'bottom 160ms ease',
+      }}
       className="flex justify-center px-4 pb-4 pt-2"
     >
       <style>{`.toolbar-scroll::-webkit-scrollbar { display: none; }`}</style>
