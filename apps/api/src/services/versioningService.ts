@@ -168,14 +168,14 @@ export async function publishDraft(
   // Attempt to mark the version as published, retrying without published_at for older upstream schemas
   try {
     await apiRequest(`/blogs/${blogId}/versions/${draftId}`, 'PUT', {
-      status: 'published',
+      status: 'committed',
       published_at: now,
     });
   } catch (err: any) {
     const upstreamMsg = err && (err.body && (err.body.message || err.body.error)) || err && err.message || '';
     if (typeof upstreamMsg === 'string' && upstreamMsg.includes("Unknown column 'published_at'")) {
       console.warn(`[versioningService] Upstream schema missing 'published_at'; retrying version update without it.`, { blogId, draftId });
-      await apiRequest(`/blogs/${blogId}/versions/${draftId}`, 'PUT', { status: 'published' });
+      await apiRequest(`/blogs/${blogId}/versions/${draftId}`, 'PUT', { status: 'committed' });
     } else {
       throw err;
     }
@@ -184,7 +184,7 @@ export async function publishDraft(
   // Update blog-level published pointer; retry without current_published_version_id if upstream schema lacks it
   try {
     await apiRequest(`/blogs/${blogId}`, 'PUT', {
-      blog_status: 'publish',
+      blog_status: 'published',
       current_published_version_id: draftId,
       blog_date_modified: now,
       blog_date_modified_gmt: now,
@@ -194,7 +194,7 @@ export async function publishDraft(
     if (typeof upstreamMsg === 'string' && upstreamMsg.includes("Unknown column 'current_published_version_id'")) {
       console.warn(`[versioningService] Upstream schema missing 'current_published_version_id'; retrying blog update without it.`, { blogId, draftId });
       await apiRequest(`/blogs/${blogId}`, 'PUT', {
-        blog_status: 'publish',
+        blog_status: 'published',
         blog_date_modified: now,
         blog_date_modified_gmt: now,
       });
@@ -216,12 +216,12 @@ export async function publishSpecificVersion(
   const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '');
 
   await apiRequest(`/blogs/${blogId}/versions/${versionId}`, 'PUT', {
-    status: 'published',
+    status: 'committed',
     published_at: now,
   });
 
   await apiRequest(`/blogs/${blogId}`, 'PUT', {
-    blog_status: 'publish',
+    blog_status: 'published',
     current_published_version_id: versionId,
     blog_date_modified: now,
     blog_date_modified_gmt: now,
