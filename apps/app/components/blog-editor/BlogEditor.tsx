@@ -873,7 +873,7 @@ export const BlogEditor = ({
         } catch {}
         try { setCreatedAt(blogData.blog_date_created ? new Date(blogData.blog_date_created) : null); } catch {}
         try { setLastPublishedAt(blogData.blog_date_published ? new Date(blogData.blog_date_published) : null); } catch {}
-        setPublishStatus((blogData.blog_status === 'publish') ? 'published' : 'draft');
+        setPublishStatus((blogData.blog_status === 'publish' || blogData.blog_status === 'published') ? 'published' : 'draft');
       }
 
       const versRes = await apiClient.get(`/blogs/${currentBlogId}/versions`);
@@ -963,7 +963,7 @@ export const BlogEditor = ({
           // Prefill editor for local/MDX blogs when no numeric API id exists
           try { setMarkdownContent(json.data.content ?? ''); } catch {}
           try { setTitleText(json.data.metadata?.title ?? ''); } catch {}
-          try { setPublishStatus((json.data.apiData?.blog_status === 'publish') ? 'published' : 'draft'); } catch {}
+          try { setPublishStatus((json.data.apiData?.blog_status === 'publish' || json.data.apiData?.blog_status === 'published') ? 'published' : 'draft'); } catch {}
         }
       } catch (err) {
         console.error('Failed to resolve blog slug', err);

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import type { Blog, ApiBlog, BlogVersionSummary } from "@/types/blog";
 import { BlogCard } from './blog-card';
 import { usePathname, useRouter } from 'next/navigation';
@@ -18,7 +18,6 @@ import {
   TrailingActions,
 } from 'react-swipeable-list';
 import 'react-swipeable-list/dist/styles.css';
-import { useQueryClient } from '@tanstack/react-query';
 import { Edit3, Trash2 } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -87,17 +86,27 @@ async function fetchServerPage(
   limit: number,
   offset: number
 ): Promise<{ rows: Blog[]; nextOffset: number | undefined }> {
-  const allBlogs = await fetchAllBlogs();
+  try {
+    // Request server-side paginated list of published & public blogs for the homepage
+    const res = await fetch(`${API_BASE_URL}/blogs?limit=${limit}&offset=${offset}&blog_status=published&blog_visibility=public`, {
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+    });
 
-  // Add artificial delay to show loading state
-  await new Promise(resolve => setTimeout(resolve, 500));
+    if (!res.ok) throw new Error(`Failed to fetch blogs: ${res.status}`);
 
-  const start = offset;
-  const end = start + limit;
-  const rows = allBlogs.slice(start, end);
-  const nextOffset = end < allBlogs.length ? end : undefined;
+    const data = await res.json();
+    if (!data.success) throw new Error('API returned unsuccessful response');
 
-  return { rows, nextOffset };
+    const apiBlogs: ApiBlog[] = Array.isArray(data.data) ? data.data : [data.data];
+    const rows: Blog[] = apiBlogs.map(convertApiBlogToBlog);
+    const nextOffset = apiBlogs.length === limit ? offset + limit : undefined;
+
+    return { rows, nextOffset };
+  } catch (error) {
+    console.error('Error fetching blogs for homepage:', error);
+    return { rows: [], nextOffset: undefined };
+  }
 }
 
 // Admin version: overlays the latest saved version (draft or published) onto each blog card
@@ -180,7 +189,9 @@ export default function InfiniteScrollBlogList() {
   });
 
   const allRows = data ? data.pages.flatMap((d) => d.rows) : [];
-  const displayRows = isAdmin ? allRows : allRows.filter((b) => b.apiData && (b.apiData.blog_status === 'publish') && (b.apiData.blog_visibility === 'public'));
+  const displayRows = isAdmin
+    ? allRows
+    : allRows.filter((b) => b.apiData && (b.apiData.blog_visibility === 'public') && (b.apiData.blog_status === 'publish' || b.apiData.blog_status === 'published'));
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const queryClient = useQueryClient();

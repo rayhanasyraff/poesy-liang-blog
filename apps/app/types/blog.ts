@@ -21,7 +21,7 @@ export interface ApiBlog {
   blog_date_published: string;
   blog_date_published_gmt: string;
   blog_content: string;
-  blog_status: 'draft' | 'publish';
+  blog_status: 'draft' | 'publish' | 'published';
   comment_status: 'open' | 'close';
   notification_status: 'all' | 'none';
   blog_date_modified: string;

@@ -76,7 +76,7 @@ export async function fetchBlogsCompatible(): Promise<Blog[]> {
 
     // Filter for published blog posts only
     const publishedApiBlogs = apiBlogs.filter(blog =>
-      blog.blog_status === 'publish' &&
+      (blog.blog_status === 'publish' || blog.blog_status === 'published') &&
       blog.blog_content.trim() !== '' &&
       blog.blog_title.trim() !== '' &&
       blog.blog_title !== 'Auto Draft'
@@ -109,7 +109,7 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
         const apiBlog = await fetchBlogFromApiById(id);
         if (apiBlog) {
           // User side: only show published blogs
-          if (apiBlog.blog_status !== 'publish') return null;
+          if (!(apiBlog.blog_status === 'publish' || apiBlog.blog_status === 'published')) return null;
           return convertApiBlogToBlog(apiBlog);
         }
       }
@@ -123,7 +123,7 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
     try {
       const apiBlogs = await fetchAllBlogsFromApi();
       const matchingBlog = apiBlogs.find(blog => {
-        if (blog.blog_status !== 'publish') return false;
+        if (!(blog.blog_status === 'publish' || blog.blog_status === 'published')) return false;
         const blogSlugRaw = (blog.blog_name || '').toString();
         const blogSlug = blogSlugRaw.toLowerCase();
         return blogSlug === slug.toLowerCase() ||

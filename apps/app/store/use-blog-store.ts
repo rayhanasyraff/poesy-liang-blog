@@ -54,7 +54,7 @@ export const useBlogStore = create<BlogStore>((set, get) => ({
 
       // Filter for published blogs
       const publishedApiBlogs = apiBlogs.filter(blog =>
-        (blog.blog_status === 'publish' || blog.blog_status === 'draft') &&
+        (blog.blog_status === 'publish' || blog.blog_status === 'published') &&
         blog.blog_content.trim() !== '' &&
         blog.blog_title.trim() !== '' &&
         blog.blog_title !== 'Auto Draft'
@@ -123,7 +123,7 @@ export const useBlogStore = create<BlogStore>((set, get) => ({
       const apiBlogs = await fetchBlogs(limit, nextOffset);
 
       const publishedApiBlogs = apiBlogs.filter(blog =>
-        (blog.blog_status === 'publish' || blog.blog_status === 'draft') &&
+        (blog.blog_status === 'publish' || blog.blog_status === 'published') &&
         blog.blog_content.trim() !== '' &&
         blog.blog_title.trim() !== '' &&
         blog.blog_title !== 'Auto Draft'
