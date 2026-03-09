@@ -155,17 +155,65 @@ try {
                 $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 100;
                 $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
 
+                // Build dynamic WHERE from query params. Supports equality or LIKE when value contains % or *.
+                $filterable = [
+                    'id' => 'i', 'blog_name' => 's', 'blog_title' => 's', 'blog_excerpt' => 's',
+                    'blog_date_published' => 's', 'blog_date_published_gmt' => 's', 'blog_content' => 's',
+                    'blog_status' => 's', 'comment_status' => 's', 'notification_status' => 's',
+                    'blog_date_modified' => 's', 'blog_date_modified_gmt' => 's', 'tags' => 's',
+                    'blog_visibility' => 's', 'like_count' => 'i', 'blog_date_created' => 's',
+                    'blog_date_created_gmt' => 's', 'like_visibility' => 's', 'view_count' => 'i',
+                    'view_visibility' => 's', 'blog_version' => 'i'
+                ];
+
+                $whereParts = [];
+                $types = '';
+                $values = [];
+
+                foreach ($filterable as $col => $t) {
+                    if (isset($_GET[$col]) && $_GET[$col] !== '') {
+                        $val = $_GET[$col];
+                        if ($t === 's' && (strpos($val, '%') !== false || strpos($val, '*') !== false)) {
+                            $val = str_replace('*', '%', $val);
+                            $whereParts[] = "$col LIKE ?";
+                        } else {
+                            $whereParts[] = "$col = ?";
+                        }
+                        $types .= $t;
+                        if ($t === 'i') $values[] = (int)$val; else $values[] = $val;
+                    }
+                }
+
+                $whereSql = count($whereParts) ? ' WHERE ' . implode(' AND ', $whereParts) : '';
+
                 // Count
-                $countStmt = $conn->prepare('SELECT COUNT(*) as total FROM blogs');
+                $countSql = 'SELECT COUNT(*) as total FROM blogs' . $whereSql;
+                $countStmt = $conn->prepare($countSql);
                 if (!$countStmt) throw new Exception($conn->error);
+
+                if ($types !== '') {
+                    $bind = array_merge([$types], $values);
+                    $tmp = [];
+                    foreach ($bind as $k => $v) $tmp[$k] = &$bind[$k];
+                    call_user_func_array([$countStmt, 'bind_param'], $tmp);
+                }
+
                 $countStmt->execute();
                 $total = (int)$countStmt->get_result()->fetch_assoc()['total'];
                 $countStmt->close();
 
-                $sql = 'SELECT id, blog_name, blog_title, blog_excerpt, blog_date_published, blog_date_published_gmt, blog_content, blog_status, comment_status, notification_status, blog_date_modified, blog_date_modified_gmt, tags, blog_visibility, like_count, blog_date_created, blog_date_created_gmt, like_visibility, view_count, view_visibility, blog_version FROM blogs ORDER BY id DESC LIMIT ? OFFSET ?';
-                $stmt = $conn->prepare($sql);
+                // Select with limit/offset
+                $selectSql = 'SELECT id, blog_name, blog_title, blog_excerpt, blog_date_published, blog_date_published_gmt, blog_content, blog_status, comment_status, notification_status, blog_date_modified, blog_date_modified_gmt, tags, blog_visibility, like_count, blog_date_created, blog_date_created_gmt, like_visibility, view_count, view_visibility, blog_version FROM blogs' . $whereSql . ' ORDER BY id DESC LIMIT ? OFFSET ?';
+                $stmt = $conn->prepare($selectSql);
                 if (!$stmt) throw new Exception($conn->error);
-                $stmt->bind_param('ii', $limit, $offset);
+
+                $selectTypes = $types . 'ii';
+                $selectValues = array_merge($values, [$limit, $offset]);
+                $bind = array_merge([$selectTypes], $selectValues);
+                $tmp = [];
+                foreach ($bind as $k => $v) $tmp[$k] = &$bind[$k];
+                call_user_func_array([$stmt, 'bind_param'], $tmp);
+
                 $stmt->execute();
                 $res = $stmt->get_result();
                 $rows = [];
@@ -280,16 +328,59 @@ try {
                 if ($method === 'GET') {
                     $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 100;
                     $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
-                    $countStmt = $conn->prepare('SELECT COUNT(*) as total FROM blog_versions WHERE blog_id = ?');
+
+                    // Build dynamic WHERE starting with blog_id
+                    $whereParts = ['blog_id = ?'];
+                    $types = 'i';
+                    $values = [$blogId];
+
+                    $filterable = [
+                        'parent_version_id' => 'i', 'version_number' => 'i', 'blog_title' => 's', 'blog_excerpt' => 's',
+                        'blog_content' => 's', 'tags' => 's', 'commit_message' => 's', 'status' => 's',
+                        'created_by' => 'i', 'created_at' => 's', 'blog_visibility' => 's', 'comment_status' => 's',
+                        'like_visibility' => 's', 'view_visibility' => 's', 'like_count' => 'i', 'view_count' => 'i'
+                    ];
+
+                    foreach ($filterable as $col => $t) {
+                        if (isset($_GET[$col]) && $_GET[$col] !== '') {
+                            $val = $_GET[$col];
+                            if ($t === 's' && (strpos($val, '%') !== false || strpos($val, '*') !== false)) {
+                                $val = str_replace('*', '%', $val);
+                                $whereParts[] = "$col LIKE ?";
+                            } else {
+                                $whereParts[] = "$col = ?";
+                            }
+                            $types .= $t;
+                            $values[] = ($t === 'i') ? (int)$val : $val;
+                        }
+                    }
+
+                    $whereSql = ' WHERE ' . implode(' AND ', $whereParts);
+
+                    // Count
+                    $countSql = 'SELECT COUNT(*) as total FROM blog_versions' . $whereSql;
+                    $countStmt = $conn->prepare($countSql);
                     if (!$countStmt) throw new Exception($conn->error);
-                    $countStmt->bind_param('i', $blogId);
+                    $bind = array_merge([$types], $values);
+                    $tmp = [];
+                    foreach ($bind as $k => $v) $tmp[$k] = &$bind[$k];
+                    call_user_func_array([$countStmt, 'bind_param'], $tmp);
                     $countStmt->execute();
                     $total = (int)$countStmt->get_result()->fetch_assoc()['total'];
                     $countStmt->close();
 
-                    $stmt = $conn->prepare('SELECT * FROM blog_versions WHERE blog_id = ? ORDER BY version_number DESC LIMIT ? OFFSET ?');
+                    // Select with limit/offset
+                    $selectSql = 'SELECT * FROM blog_versions' . $whereSql . ' ORDER BY version_number DESC LIMIT ? OFFSET ?';
+                    $stmt = $conn->prepare($selectSql);
                     if (!$stmt) throw new Exception($conn->error);
-                    $stmt->bind_param('iii', $blogId, $limit, $offset);
+
+                    $selectTypes = $types . 'ii';
+                    $selectValues = array_merge($values, [$limit, $offset]);
+                    $bind = array_merge([$selectTypes], $selectValues);
+                    $tmp = [];
+                    foreach ($bind as $k => $v) $tmp[$k] = &$bind[$k];
+                    call_user_func_array([$stmt, 'bind_param'], $tmp);
+
                     $stmt->execute();
                     $res = $stmt->get_result();
                     $rows = [];
