@@ -6,7 +6,7 @@ ZIP_FILE="$API_PHP_DIR/vendor.zip"
 FTP_USER="psworld"
 FTP_PASS="xv3DEXuHsHn969ducYT3"
 FTP_HOST="ftp://poesyliang.net/domains/poesyliang.net/public_html/api"
-API_URL="https://poesyliang.net/api"
+API_URL="http://poesyliang.net/api"
 DEPLOY_KEY="xv3DEXuHsHn969ducYT3"
 
 # 1️⃣ Install dependencies locally
