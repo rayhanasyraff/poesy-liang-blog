@@ -61,7 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $method = $_SERVER['REQUEST_METHOD'];
 $path   = Router::parsePath();
 
-// ── Unauthenticated routes ───────────────────────────────────────────────────
+// ── Bearer token required on every route ────────────────────────────────────
+
+Auth::requireBearer();
+
+// ── Routes ───────────────────────────────────────────────────────────────────
 
 if ($path === '/' && $method === 'GET') {
     WpPostController::health();
@@ -70,10 +74,6 @@ if ($path === '/' && $method === 'GET') {
 if ($path === '/auth/login' && $method === 'POST') {
     AuthController::login();
 }
-
-// ── Bearer token required for all other routes ───────────────────────────────
-
-Auth::requireBearer();
 
 // ── Route registry ────────────────────────────────────────────────────────────
 
