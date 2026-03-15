@@ -1,0 +1,28 @@
+{
+    "name": "poesyliang/api",
+    "description": "PoesyLiang PHP API",
+    "type": "project",
+    "require": {
+        "firebase/php-jwt": "^7.0",
+        "nikic/php-parser": "^5.0",
+        "symfony/yaml": "^8.0",
+        "zircote/swagger-php": "^6.0",
+        "symfony/type-info": "^8.0",
+        "symfony/finder": "^8.0",
+        "radebatz/type-info-extras": "^1.0",
+        "psr/log": "^3.0",
+        "psr/container": "^2.0",
+        "phpstan/phpdoc-parser": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "audit": {
+            "ignore": ["PKSA-y2cr-5h3j-g3ys"]
+        }
+    }
+}
