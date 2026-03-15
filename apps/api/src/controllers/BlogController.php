@@ -55,7 +55,7 @@ class BlogController
             foreach ($filterable as $col => $t) {
                 if (!isset($_GET[$col]) || $_GET[$col] === '') continue;
                 $val = $_GET[$col];
-                if ($t === 's' && (str_contains($val, '%') || str_contains($val, '*'))) {
+                if ($t === 's' && (strpos($val, '%') !== false || strpos($val, '*') !== false)) {
                     $val = str_replace('*', '%', $val);
                     $whereParts[] = "$col LIKE ?";
                 } else {

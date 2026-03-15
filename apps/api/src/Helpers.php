@@ -3,7 +3,7 @@ namespace App;
 
 class Helpers
 {
-    public static function sendJson(mixed $payload, int $code = 200): never
+    public static function sendJson($payload, int $code = 200): void
     {
         http_response_code($code);
         header('Content-Type: application/json');
@@ -11,17 +11,17 @@ class Helpers
         exit;
     }
 
-    public static function badRequest(string $msg): never
+    public static function badRequest(string $msg): void
     {
         self::sendJson(['success' => false, 'error' => $msg], 400);
     }
 
-    public static function notFound(string $msg = 'Not found'): never
+    public static function notFound(string $msg = 'Not found'): void
     {
         self::sendJson(['success' => false, 'error' => $msg], 404);
     }
 
-    public static function serverError(string $msg = 'Internal server error'): never
+    public static function serverError(string $msg = 'Internal server error'): void
     {
         self::sendJson(['success' => false, 'error' => $msg], 500);
     }

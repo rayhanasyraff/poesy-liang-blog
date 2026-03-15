@@ -45,7 +45,7 @@ class Router
         $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
         $script = dirname($_SERVER['SCRIPT_NAME'] ?? '');
 
-        if ($script !== '/' && $script !== '' && str_starts_with($uri, $script)) {
+        if ($script !== '/' && $script !== '' && strpos($uri, $script) === 0) {
             $uri = substr($uri, strlen($script));
         }
 
@@ -53,7 +53,7 @@ class Router
 
         // Strip script filename if present (e.g. /index.php/blogs → /blogs)
         $filename = '/' . basename($_SERVER['SCRIPT_NAME'] ?? 'index.php');
-        if (str_starts_with($uri, $filename . '/')) {
+        if (strpos($uri, $filename . '/') === 0) {
             $uri = substr($uri, strlen($filename));
         } elseif ($uri === $filename) {
             $uri = '/';

@@ -191,7 +191,7 @@ class VersioningService
 
         // Remove NULL entries from set parts that were already written inline
         $setParts = array_values($setParts);
-        $nullParts = array_filter($setParts, fn($p) => str_contains($p, '= NULL'));
+        $nullParts = array_filter($setParts, fn($p) => strpos($p, '= NULL') !== false);
         $paramParts = array_diff($setParts, $nullParts);
 
         if (empty($paramParts) && empty($nullParts)) return;
