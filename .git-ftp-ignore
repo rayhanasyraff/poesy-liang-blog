@@ -1,7 +1,0 @@
-# Ignore everything by default
-*
-
-# Include only the PHP API folder
-!apps/api-php/**
-!apps/api-php/composer.json
-!apps/api-php/composer.lock
