@@ -152,7 +152,7 @@ class NormalizeController
                     $upd3->bind_param('ii', $v1Id, $blogId);
                     $upd3->execute();
                     $upd3->close();
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
                     // Column may not exist — non-fatal
                 }
 

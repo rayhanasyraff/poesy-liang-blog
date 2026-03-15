@@ -9,7 +9,12 @@ use App\Helpers;
  */
 class VersioningService
 {
-    public function __construct(private \mysqli $db) {}
+    private \mysqli $db;
+
+    public function __construct(\mysqli $db)
+    {
+        $this->db = $db;
+    }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
