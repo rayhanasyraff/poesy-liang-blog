@@ -14,26 +14,30 @@ async function apiRequest<T>(path: string, method = 'GET', body?: object): Promi
   };
   if (body && method !== 'GET') opts.body = JSON.stringify(body);
 
+  console.debug(`[versioningService] apiRequest ${method} ${url}`, {
+    body: body ? (typeof body === 'object' ? body : body) : undefined,
+  });
+
+  let res: Response;
+  let parsed: any;
   try {
-    console.debug(`[versioningService] apiRequest ${method} ${url}`, {
-      body: body ? (typeof body === 'object' ? body : body) : undefined,
-    });
-    const res = await fetch(url, opts);
+    res = await fetch(url, opts);
     const text = await res.text();
-    let parsed: any = text;
-    try { parsed = text ? JSON.parse(text) : text; } catch {}
-    if (!res.ok) {
-      console.error(`[versioningService] Upstream API ${method} ${url} returned ${res.status} ${res.statusText}`, { status: res.status, body: parsed });
-      const err = new Error(`API ${method} ${path} failed: ${res.status} ${res.statusText} - ${typeof parsed === 'object' ? JSON.stringify(parsed) : parsed}`);
-      (err as any).status = res.status;
-      (err as any).body = parsed;
-      throw err;
-    }
-    return parsed as T;
+    try { parsed = text ? JSON.parse(text) : text; } catch { parsed = text; }
   } catch (err: any) {
-    console.error(`[versioningService] apiRequest error for ${method} ${url}`, { error: err && (err.stack || err.message || err) });
+    console.error(`[versioningService] apiRequest network error for ${method} ${url}`, { error: err && (err.stack || err.message || err) });
     throw err;
   }
+
+  if (!res.ok) {
+    console.error(`[versioningService] Upstream API ${method} ${url} returned ${res.status} ${res.statusText}`, { status: res.status, body: parsed });
+    const err = new Error(`API ${method} ${path} failed: ${res.status} ${res.statusText} - ${typeof parsed === 'object' ? JSON.stringify(parsed) : parsed}`);
+    (err as any).status = res.status;
+    (err as any).body = parsed;
+    throw err;
+  }
+
+  return parsed as T;
 }
 
 type VersionResp = { success: boolean; data: BlogVersion | BlogVersion[]; returned_rows?: number };
@@ -155,46 +159,181 @@ export async function saveDraft(
 /**
  * Publish Draft:
  * 1. saveDraft to ensure latest draft has current content + draft_saved_at
- * 2. Mark that draft as 'published' + set published_at
- * 3. Update blogs.current_published_version_id + blog_status='publish'
+ * 2. Mark that draft as 'committed' + set published_at
+ * 3. Update blogs row: blog_status='published', current_published_version_id, and copy content fields
+ * A new draft is NOT created here — it will be created on the next save after the user makes changes.
+ * Returns { published: { id, version_number } }
  */
 export async function publishDraft(
   blogId: number | string,
   draftData: DraftData
-): Promise<{ id: number; version_number: number }> {
+): Promise<{ published: { id: number; version_number: number } }> {
   const { id: draftId, version_number } = await saveDraft(blogId, draftData);
   const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '');
 
-  // Attempt to mark the version as published, retrying without published_at for older upstream schemas
+  const maxRetries = 3;
+  const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+  // 1) Commit the draft version (with retries and verification)
+  let committed = false;
+  let lastCommitErr: any = null;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      try {
+        await apiRequest(`/blogs/${blogId}/versions/${draftId}`, 'PUT', {
+          status: 'committed',
+          published_at: now,
+        });
+      } catch (err: any) {
+        const upstreamMsg = err && (err.body && (err.body.message || err.body.error)) || err && err.message || '';
+        if (typeof upstreamMsg === 'string' && upstreamMsg.includes("Unknown column 'published_at'")) {
+          console.warn(`[versioningService] Upstream schema missing 'published_at'; retrying version update without it.`, { blogId, draftId, attempt });
+          await apiRequest(`/blogs/${blogId}/versions/${draftId}`, 'PUT', { status: 'committed' });
+        } else {
+          throw err;
+        }
+      }
+
+      // Verify the version status was updated
+      try {
+        const verResp = await apiRequest<{ success: boolean; data: any }>(`/blogs/${blogId}/versions/${draftId}`);
+        const ver = (verResp as any)?.data ?? verResp;
+        if (ver && (ver.status === 'committed' || ver.status === 'published')) {
+          committed = true;
+          break;
+        }
+      } catch (err: any) {
+        // swallow and retry
+      }
+    } catch (err: any) {
+      lastCommitErr = err;
+      console.warn(`[versioningService] commit attempt ${attempt} failed for blog ${blogId} v${draftId}`, { error: err && (err.stack || err.message || err) });
+      if (attempt < maxRetries) await sleep(attempt * 200);
+    }
+  }
+
+  if (!committed) {
+    console.error(`[versioningService] Failed to commit version ${draftId} for blog ${blogId} after ${maxRetries} attempts`, { lastError: lastCommitErr });
+    throw lastCommitErr || new Error(`Failed to commit version ${draftId} for blog ${blogId}`);
+  }
+
+  // 2) Update blog row to point at the committed version (with retries and verification)
+  let updated = false;
+  let lastBlogErr: any = null;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      try {
+        await apiRequest(`/blogs/${blogId}`, 'PUT', {
+          blog_status: 'published',
+          current_published_version_id: draftId,
+          blog_title: draftData.blog_title,
+          blog_content: draftData.blog_content,
+          blog_excerpt: draftData.blog_excerpt ?? '',
+          tags: draftData.tags ?? null,
+          blog_date_modified: now,
+          blog_date_modified_gmt: now,
+        });
+      } catch (err: any) {
+        const upstreamMsg = err && (err.body && (err.body.message || err.body.error)) || err && err.message || '';
+        if (typeof upstreamMsg === 'string' && upstreamMsg.includes("Unknown column 'current_published_version_id'")) {
+          console.warn(`[versioningService] Upstream schema missing 'current_published_version_id'; retrying blog update without it.`, { blogId, draftId, attempt });
+          await apiRequest(`/blogs/${blogId}`, 'PUT', {
+            blog_status: 'published',
+            blog_title: draftData.blog_title,
+            blog_content: draftData.blog_content,
+            blog_excerpt: draftData.blog_excerpt ?? '',
+            tags: draftData.tags ?? null,
+            blog_date_modified: now,
+            blog_date_modified_gmt: now,
+          });
+        } else {
+          throw err;
+        }
+      }
+
+      // Verify blog row matches expected published state and title
+      try {
+        const blogResp = await apiRequest<{ success: boolean; data: any }>(`/blogs/${blogId}`);
+        const blogRow = (blogResp as any)?.data ?? blogResp;
+        const statusOk = blogRow && (blogRow.blog_status === 'published' || blogRow.blog_status === 'publish');
+        const titleOk = blogRow && String(blogRow.blog_title) === String(draftData.blog_title);
+        if (statusOk && titleOk) {
+          updated = true;
+          break;
+        } else {
+          console.info(`[versioningService] blog row mismatch after update attempt ${attempt} for blog ${blogId}`, { status: blogRow?.blog_status, title: blogRow?.blog_title });
+        }
+      } catch (err: any) {
+        // swallow and retry
+      }
+    } catch (err: any) {
+      lastBlogErr = err;
+      console.warn(`[versioningService] blog update attempt ${attempt} failed for blog ${blogId}`, { error: err && (err.stack || err.message || err) });
+      if (attempt < maxRetries) await sleep(attempt * 300);
+    }
+  }
+
+  if (!updated) {
+    console.error(`[versioningService] Failed to verify blog update for blog ${blogId} after ${maxRetries} attempts`, { lastError: lastBlogErr });
+    throw lastBlogErr || new Error(`Failed to update blog ${blogId} after publish`);
+  }
+
+  return { published: { id: draftId, version_number } };
+
+}
+
+/**
+ * Publish a specific version by ID (from version history).
+ * A new draft is NOT created here — it will be created on the next save after the user makes changes.
+ */
+export async function publishSpecificVersion(
+  blogId: number | string,
+  versionId: number
+): Promise<void> {
+  const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '');
+
+  // Fetch the version's content so we can copy it to the blog row and new draft
+  const versionResp = await apiRequest<{ success: boolean; data: BlogVersion }>(
+    `/blogs/${blogId}/versions/${versionId}`
+  );
+  const ver = versionResp.data;
+
   try {
-    await apiRequest(`/blogs/${blogId}/versions/${draftId}`, 'PUT', {
+    await apiRequest(`/blogs/${blogId}/versions/${versionId}`, 'PUT', {
       status: 'committed',
       published_at: now,
     });
   } catch (err: any) {
     const upstreamMsg = err && (err.body && (err.body.message || err.body.error)) || err && err.message || '';
     if (typeof upstreamMsg === 'string' && upstreamMsg.includes("Unknown column 'published_at'")) {
-      console.warn(`[versioningService] Upstream schema missing 'published_at'; retrying version update without it.`, { blogId, draftId });
-      await apiRequest(`/blogs/${blogId}/versions/${draftId}`, 'PUT', { status: 'committed' });
+      console.warn(`[versioningService] Upstream schema missing 'published_at'; retrying version update without it.`, { blogId, versionId });
+      await apiRequest(`/blogs/${blogId}/versions/${versionId}`, 'PUT', { status: 'committed' });
     } else {
       throw err;
     }
   }
 
-  // Update blog-level published pointer; retry without current_published_version_id if upstream schema lacks it
   try {
     await apiRequest(`/blogs/${blogId}`, 'PUT', {
       blog_status: 'published',
-      current_published_version_id: draftId,
+      current_published_version_id: versionId,
+      blog_title: ver.blog_title,
+      blog_content: ver.blog_content,
+      blog_excerpt: ver.blog_excerpt ?? '',
+      tags: ver.tags ?? null,
       blog_date_modified: now,
       blog_date_modified_gmt: now,
     });
   } catch (err: any) {
     const upstreamMsg = err && (err.body && (err.body.message || err.body.error)) || err && err.message || '';
     if (typeof upstreamMsg === 'string' && upstreamMsg.includes("Unknown column 'current_published_version_id'")) {
-      console.warn(`[versioningService] Upstream schema missing 'current_published_version_id'; retrying blog update without it.`, { blogId, draftId });
+      console.warn(`[versioningService] Upstream schema missing 'current_published_version_id'; retrying blog update without it.`, { blogId, versionId });
       await apiRequest(`/blogs/${blogId}`, 'PUT', {
         blog_status: 'published',
+        blog_title: ver.blog_title,
+        blog_content: ver.blog_content,
+        blog_excerpt: ver.blog_excerpt ?? '',
+        tags: ver.tags ?? null,
         blog_date_modified: now,
         blog_date_modified_gmt: now,
       });
@@ -203,29 +342,6 @@ export async function publishDraft(
     }
   }
 
-  return { id: draftId, version_number };
-}
-
-/**
- * Publish a specific version by ID (from version history).
- */
-export async function publishSpecificVersion(
-  blogId: number | string,
-  versionId: number
-): Promise<void> {
-  const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '');
-
-  await apiRequest(`/blogs/${blogId}/versions/${versionId}`, 'PUT', {
-    status: 'committed',
-    published_at: now,
-  });
-
-  await apiRequest(`/blogs/${blogId}`, 'PUT', {
-    blog_status: 'published',
-    current_published_version_id: versionId,
-    blog_date_modified: now,
-    blog_date_modified_gmt: now,
-  });
 }
 
 /**
@@ -283,10 +399,24 @@ export async function updateSettings(
  */
 export async function unpublishBlog(blogId: number | string): Promise<void> {
   const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '');
-  await apiRequest(`/blogs/${blogId}`, 'PUT', {
-    blog_status: 'draft',
-    current_published_version_id: null,
-    blog_date_modified: now,
-    blog_date_modified_gmt: now,
-  });
+  try {
+    await apiRequest(`/blogs/${blogId}`, 'PUT', {
+      blog_status: 'draft',
+      current_published_version_id: null,
+      blog_date_modified: now,
+      blog_date_modified_gmt: now,
+    });
+  } catch (err: any) {
+    const upstreamMsg = err && (err.body && (err.body.message || err.body.error)) || err && err.message || '';
+    if (typeof upstreamMsg === 'string' && upstreamMsg.includes("Unknown column 'current_published_version_id'")) {
+      console.warn(`[versioningService] Upstream schema missing 'current_published_version_id'; retrying unpublish without it.`, { blogId });
+      await apiRequest(`/blogs/${blogId}`, 'PUT', {
+        blog_status: 'draft',
+        blog_date_modified: now,
+        blog_date_modified_gmt: now,
+      });
+    } else {
+      throw err;
+    }
+  }
 }

@@ -1,17 +1,31 @@
 import { apiClient } from './client';
-import type { ApiResponse, ApiBlog, BlogSettings, BlogVersionSummary } from '@/types/blog';
+import type { ApiResponse, ApiBlog, ApiBlogWithVersion, BlogSettings, BlogVersionSummary } from '@/types/blog';
 
-// GET - Fetch all blogs with pagination
+// GET - Fetch blogs with pagination
 export const fetchBlogs = async (limit = 50, offset = 0): Promise<ApiBlog[]> => {
-  const res = await apiClient.get<ApiResponse>(`/blogs`, {
-    params: { limit, offset },
-  });
-
-  if (!res.data.success) {
-    throw new Error('API returned unsuccessful response');
-  }
-
+  const res = await apiClient.get<ApiResponse>(`/blogs`, { params: { limit, offset } });
+  if (!res.data.success) throw new Error('API returned unsuccessful response');
   return Array.isArray(res.data.data) ? res.data.data : [res.data.data];
+};
+
+// GET - Fetch blogs with latest-version overlay (admin homepage — no status/visibility filter)
+export const fetchBlogsWithVersions = async (
+  limit = 20,
+  offset = 0
+): Promise<{ rows: ApiBlogWithVersion[]; nextOffset: number | null }> => {
+  // Use proxy path in the browser so the Express URL is resolved server-side
+  const base = typeof window !== 'undefined'
+    ? '/api/proxy'
+    : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
+  const res = await fetch(
+    `${base}/blogs?limit=${limit}&offset=${offset}&include_versions=true`,
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  if (!res.ok) throw new Error(`Failed to fetch blogs: ${res.status}`);
+  const data = await res.json();
+  if (!data.success) throw new Error('API returned unsuccessful response');
+  const rows: ApiBlogWithVersion[] = Array.isArray(data.data) ? data.data : [data.data];
+  return { rows, nextOffset: data.nextOffset ?? null };
 };
 
 // GET - Fetch a single blog by ID

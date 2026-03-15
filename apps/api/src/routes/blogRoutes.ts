@@ -4,6 +4,7 @@ import {
   getBlogByIdFromApi,
   createBlog,
   deleteBlog,
+  checkSlugAvailable,
 } from "../controllers/blogController";
 import {
   getVersions,
@@ -21,6 +22,7 @@ const router = Router();
 
 // Blog endpoints
 router.get("/blogs", getAllBlogsFromApi);
+router.get("/blogs/check-slug", checkSlugAvailable);
 router.get("/blogs/:id", getBlogByIdFromApi);
 router.post("/blogs", createBlog);
 router.delete("/blogs/:id", deleteBlog);

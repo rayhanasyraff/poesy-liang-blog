@@ -3,10 +3,8 @@ import { getClientApiUrl } from '@/lib/api-port';
 
 export const apiClient = axios.create({
   baseURL: getClientApiUrl(),
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 30000, // 30 seconds
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 30000,
 });
 
 // Request interceptor for adding auth tokens if needed

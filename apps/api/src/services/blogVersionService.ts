@@ -21,11 +21,15 @@ async function request<T>(path: string): Promise<T> {
 export async function listVersions(
   blogId: string,
   limit = config.pagination.defaultLimit,
-  offset = 0
+  offset = 0,
+  status?: string
 ): Promise<BlogVersion[]> {
-  const data = await request<{ success: boolean; data: BlogVersion[] }>(
-    `/blogs/${blogId}/versions?limit=${limit}&offset=${offset}`
-  );
+  const params = new URLSearchParams();
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  if (status) params.set('status', status);
+  const path = `/blogs/${blogId}/versions?${params.toString()}`;
+  const data = await request<{ success: boolean; data: BlogVersion[] }>(path);
   return data.data ?? [];
 }
 

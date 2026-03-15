@@ -313,3 +313,93 @@ table {
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out;
 }
+
+/* Toolbar scrollbar overrides for Chromium/Edge: show thumb only, hide track/buttons */
+html body .editor-content-toolbar {
+  /* ensure the thumb appears visually inside the rounded toolbar */
+  margin-bottom: 5px !important;
+  scrollbar-color: hsl(var(--border) / 0.5) transparent !important;
+}
+html body .editor-content-toolbar::-webkit-scrollbar {
+  height: 8px !important;
+  background: transparent !important;
+}
+html body .editor-content-toolbar::-webkit-scrollbar-button {
+  display: none !important;
+  height: 0 !important;
+  width: 0 !important;
+}
+html body .editor-content-toolbar::-webkit-scrollbar-track,
+html body .editor-content-toolbar::-webkit-scrollbar-track-piece,
+html body .editor-content-toolbar::-webkit-scrollbar-corner {
+  background: transparent !important;
+  border: none !important;
+}
+html body .editor-content-toolbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border) / 0.5) !important;
+  border-radius: 9999px !important;
+  border: none !important;
+}
+/* Increase specificity to override global rules in globals.css */
+.editor-content-toolbar {
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-gutter: stable both-edges !important;
+}
+
+/* Hide native scrollbar for elements where we render a custom thumb */
+.no-native-scrollbar {
+  -ms-overflow-style: none !important; /* IE 10+ */
+  scrollbar-width: none !important; /* Firefox */
+}
+.no-native-scrollbar::-webkit-scrollbar {
+  display: none !important; /* Chrome/Safari/Edge */
+  width: 0 !important;
+  height: 0 !important;
+  visibility: hidden !important;
+}
+/* Extra high-specificity rules for the editor toolbar in Chromium/Edge to fully remove native overlay scrollbars */
+html body .editor-content-toolbar.no-native-scrollbar,
+html body .no-native-scrollbar.editor-content-toolbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+html body .editor-content-toolbar.no-native-scrollbar::-webkit-scrollbar,
+html body .no-native-scrollbar.editor-content-toolbar::-webkit-scrollbar,
+html body .editor-content-toolbar.no-native-scrollbar::-webkit-scrollbar-thumb,
+html body .editor-content-toolbar.no-native-scrollbar::-webkit-scrollbar-track,
+html body .editor-content-toolbar.no-native-scrollbar::-webkit-scrollbar-corner,
+html body .editor-content-toolbar.no-native-scrollbar::-webkit-scrollbar-button,
+html body .no-native-scrollbar.editor-content-toolbar::-webkit-scrollbar-thumb,
+html body .no-native-scrollbar.editor-content-toolbar::-webkit-scrollbar-track,
+html body .no-native-scrollbar.editor-content-toolbar::-webkit-scrollbar-corner,
+html body .no-native-scrollbar.editor-content-toolbar::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+/* Ensure mdxeditor's dialogs and popovers (e.g. InsertImage) render above the bottom toolbar (z-index: 99999).
+   mdxeditor uses CSS module hashed class names; [class*=] matches regardless of the hash suffix. */
+[class*="_dialogOverlay_"],
+[class*="_dialogContent_"],
+[class*="_largeDialogContent_"],
+[class*="_popoverContent_"],
+[class*="_linkDialogPopoverContent_"] {
+  z-index: 100000 !important;
+}
+
+/* Fallback: cover the scrollbar area with an overlay for stubborn UA scrollbars */
+html body .editor-content-toolbar.no-native-scrollbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  background: transparent;
+  pointer-events: none;
+}

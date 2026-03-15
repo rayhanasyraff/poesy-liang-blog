@@ -1,6 +1,6 @@
 import Container from "@/components/shared/container";
 import Link from "next/link";
-import type Metadata from "next";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import InfiniteScrollBlogList from "@/components/infinite-scroll-blog-list";
 import { Button } from '@/components/ui/button';

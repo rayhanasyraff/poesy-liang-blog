@@ -99,6 +99,35 @@ export async function fetchBlogsCompatible(): Promise<Blog[]> {
   }
 }
 
+// Overlay the latest committed/published version onto a blog for public display.
+// This ensures draft edits never leak through even if the upstream API writes
+// draft content back to the blogs table row.
+async function overlayCommittedVersion(apiBlog: ApiBlog): Promise<Blog> {
+  try {
+    const versions = await fetchBlogVersions(apiBlog.id);
+    if (versions && versions.length > 0) {
+      const committed = versions.filter(v => v.status === 'committed' || v.status === 'published');
+      if (committed.length > 0) {
+        const latest = committed.reduce((a, b) => b.version_number > a.version_number ? b : a);
+        const base = convertApiBlogToBlog(apiBlog);
+        return {
+          ...base,
+          content: latest.blog_content ?? base.content,
+          tags: latest.tags ?? base.tags,
+          metadata: {
+            ...base.metadata,
+            title: latest.blog_title || base.metadata.title,
+            summary: latest.blog_excerpt || base.metadata.summary,
+          },
+        };
+      }
+    }
+  } catch {
+    // Fall back to blog row content if version fetch fails
+  }
+  return convertApiBlogToBlog(apiBlog);
+}
+
 // Function to get a specific published blog by slug (user-facing)
 export async function getBlogBySlug(slug: string): Promise<Blog | null> {
   try {
@@ -110,7 +139,7 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
         if (apiBlog) {
           // User side: only show published blogs
           if (!(apiBlog.blog_status === 'publish' || apiBlog.blog_status === 'published')) return null;
-          return convertApiBlogToBlog(apiBlog);
+          return overlayCommittedVersion(apiBlog);
         }
       }
     }
@@ -132,7 +161,7 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
                decodeURIComponent(blogSlug) === decodedSlug;
       });
       if (matchingBlog) {
-        return convertApiBlogToBlog(matchingBlog);
+        return overlayCommittedVersion(matchingBlog);
       }
     } catch (apiError) {
       console.warn('Could not search API blogs by slug:', apiError);
@@ -159,7 +188,11 @@ export async function getAdminBlogBySlug(slug: string): Promise<Blog | null> {
     let apiBlog: ApiBlog | null = null;
 
     // Resolve slug to ApiBlog (no status filter — admins see all)
-    if (slug.startsWith('blog-')) {
+    // Handle plain numeric id (e.g. "123")
+    const numericId = Number(slug);
+    if (!isNaN(numericId) && slug.trim() !== '') {
+      apiBlog = await fetchBlogFromApiById(numericId);
+    } else if (slug.startsWith('blog-')) {
       const id = parseInt(slug.replace('blog-', ''));
       if (!isNaN(id)) {
         apiBlog = await fetchBlogFromApiById(id);

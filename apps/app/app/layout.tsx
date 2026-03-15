@@ -6,8 +6,6 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-
-import { Header } from "@/components/header";
 import { ThemeProvider } from "./theme-provider";
 import Providers from "@/components/providers";
 import { LoadingProvider } from "@/components/loading-provider";
@@ -23,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script src="http://localhost:8097"></script>
         <link rel="icon" type="image/png" href="/poesy-logo-pink.png" />
         <link rel="shortcut icon" type="image/png" href="/poesy-logo-pink.png" />
         {process.env.NODE_ENV === "development" && (

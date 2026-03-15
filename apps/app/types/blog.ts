@@ -59,6 +59,28 @@ export interface BlogSettings {
   view_visibility: 'open' | 'close';
 }
 
+// Blog row returned when ?include_versions=true — same as ApiBlog plus latest version overlay
+export interface ApiBlogWithVersion extends ApiBlog {
+  // Legacy single-version overlay (still present for backward compat)
+  latest_version_id: number | null;
+  latest_version_number: number | null;
+  latest_version_status: 'draft' | 'committed' | 'published' | null;
+  latest_blog_title: string | null;
+  latest_blog_excerpt: string | null;
+  latest_blog_content: string | null;
+  latest_tags: string | null;
+  latest_draft_saved_at: string | null;
+  latest_published_at: string | null;
+  // Separate draft + committed fields (admin path — no version_status filter)
+  latest_draft_version_id: number | null;
+  latest_draft_version_number: number | null;
+  latest_draft_blog_title: string | null;
+  latest_committed_version_id: number | null;
+  latest_committed_version_number: number | null;
+  latest_committed_blog_title: string | null;
+  latest_committed_published_at: string | null;
+}
+
 export interface ApiResponse {
   success: boolean;
   pagination?: {

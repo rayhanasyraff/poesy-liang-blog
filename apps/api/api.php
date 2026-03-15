@@ -59,6 +59,94 @@ if (!defined('DB_NAME')) {
     define('DB_NAME', 'psworld_12017');
 }
 
+// ── phpass password verification (WordPress-compatible) ──────────────────────
+function phpass_encode64($input, $count) {
+    $itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    $output = '';
+    $i = 0;
+    do {
+        $value = ord($input[$i++]);
+        $output .= $itoa64[$value & 0x3f];
+        if ($i < $count) $value |= ord($input[$i]) << 8;
+        $output .= $itoa64[($value >> 6) & 0x3f];
+        if ($i++ >= $count) break;
+        if ($i < $count) $value |= ord($input[$i]) << 8;
+        $output .= $itoa64[($value >> 12) & 0x3f];
+        if ($i++ >= $count) break;
+        $output .= $itoa64[($value >> 18) & 0x3f];
+    } while ($i < $count);
+    return $output;
+}
+
+function check_password($password, $stored_hash) {
+    $itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    // Legacy MD5
+    if (strlen($stored_hash) !== 34 || (substr($stored_hash, 0, 3) !== '$P$' && substr($stored_hash, 0, 3) !== '$H$')) {
+        return hash_equals(md5($password), $stored_hash);
+    }
+    $count_log2 = strpos($itoa64, $stored_hash[3]);
+    if ($count_log2 < 7 || $count_log2 > 30) return false;
+    $count = 1 << $count_log2;
+    $salt = substr($stored_hash, 4, 8);
+    if (strlen($salt) !== 8) return false;
+    $hash = md5($salt . $password, true);
+    do { $hash = md5($hash . $password, true); } while (--$count);
+    $output = substr($stored_hash, 0, 12) . phpass_encode64($hash, 16);
+    return hash_equals($output, $stored_hash);
+}
+
+// ── Unauthenticated: POST /auth/login ────────────────────────────────────────
+$earlyPath = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '', '/');
+$earlyScript = basename($_SERVER['SCRIPT_NAME'] ?? '');
+if ($earlyScript !== '' && stripos($earlyPath, $earlyScript . '/') === 0) {
+    $earlyPath = substr($earlyPath, strlen($earlyScript) + 1);
+} elseif ($earlyScript !== '' && $earlyPath === $earlyScript) {
+    $earlyPath = '';
+}
+if ($earlyPath === 'auth/login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $body = json_decode(file_get_contents('php://input'), true) ?? [];
+    $email    = trim($body['email']    ?? '');
+    $password = $body['password'] ?? '';
+    if (!$email || !$password) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'email and password are required']);
+        exit;
+    }
+    $dbHost2 = DB_HOST; $dbUser2 = DB_USER; $dbPass2 = DB_PASS; $dbName2 = DB_NAME;
+    $conn2 = new mysqli($dbHost2, $dbUser2, $dbPass2, $dbName2);
+    if ($conn2->connect_error) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Database error']);
+        exit;
+    }
+    $conn2->set_charset('utf8mb4');
+    $stmt2 = $conn2->prepare('SELECT ID, user_login, user_pass, user_email, display_name, user_status FROM wp_users WHERE user_email = ? LIMIT 1');
+    $stmt2->bind_param('s', $email);
+    $stmt2->execute();
+    $res2 = $stmt2->get_result();
+    if ($res2->num_rows === 0) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'Invalid email or password']);
+        exit;
+    }
+    $user = $res2->fetch_assoc();
+    $stmt2->close();
+    $conn2->close();
+    if (!check_password($password, $user['user_pass'])) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'Invalid email or password']);
+        exit;
+    }
+    if ((int)$user['user_status'] !== 0) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'Access denied: not an admin account']);
+        exit;
+    }
+    unset($user['user_pass']);
+    echo json_encode(['success' => true, 'data' => $user]);
+    exit;
+}
+
 // Basic Bearer token auth (constants only)
 $expectedToken = API_TOKEN; // Use the API_TOKEN constant (set above)
 $allHeaders = function_exists('getallheaders') ? getallheaders() : [];
@@ -141,7 +229,9 @@ if (count($segments) === 0 || ($segments[0] === '')) {
             '/blogs (GET, POST)',
             '/blogs/{id} (GET, PUT, DELETE)',
             '/blogs/{id}/versions (GET, POST)',
-            '/blogs/{id}/versions/{version_id} (GET, PUT, DELETE)'
+            '/blogs/{id}/versions/{version_id} (GET, PUT, DELETE)',
+            '/users (GET, POST)',
+            '/users/{id} (GET, PUT, DELETE)',
         ]
     ]);
 }
@@ -496,6 +586,148 @@ try {
         // other subroutes not implemented
         http_response_code(404);
         sendJson(['error' => 'Endpoint not found'], 404);
+    }
+
+    // ── /users ───────────────────────────────────────────────────────────────
+    if ($segments[0] === 'users') {
+
+        if (!isset($segments[1])) {
+            // GET /users  — list with pagination + filtering
+            if ($method === 'GET') {
+                $limit  = isset($_GET['limit'])  ? (int)$_GET['limit']  : 50;
+                $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+
+                $filterable = [
+                    'ID' => 'i', 'user_login' => 's', 'user_nicename' => 's',
+                    'user_email' => 's', 'user_url' => 's', 'user_status' => 'i',
+                    'display_name' => 's',
+                ];
+                $whereParts = []; $types = ''; $values = [];
+                foreach ($filterable as $col => $t) {
+                    if (isset($_GET[$col]) && $_GET[$col] !== '') {
+                        $val = $_GET[$col];
+                        if ($t === 's' && (strpos($val, '%') !== false || strpos($val, '*') !== false)) {
+                            $val = str_replace('*', '%', $val);
+                            $whereParts[] = "$col LIKE ?";
+                        } else {
+                            $whereParts[] = "$col = ?";
+                        }
+                        $types .= $t;
+                        $values[] = ($t === 'i') ? (int)$val : $val;
+                    }
+                }
+                $whereSql = count($whereParts) ? ' WHERE ' . implode(' AND ', $whereParts) : '';
+
+                $countStmt = $conn->prepare('SELECT COUNT(*) as total FROM wp_users' . $whereSql);
+                if (!$countStmt) throw new Exception($conn->error);
+                if ($types !== '') {
+                    $bind = array_merge([$types], $values);
+                    $tmp = [];
+                    foreach ($bind as $k => $v) $tmp[$k] = &$bind[$k];
+                    call_user_func_array([$countStmt, 'bind_param'], $tmp);
+                }
+                $countStmt->execute();
+                $total = (int)$countStmt->get_result()->fetch_assoc()['total'];
+                $countStmt->close();
+
+                // Exclude user_pass from list responses
+                $selectSql = 'SELECT ID, user_login, user_nicename, user_email, user_url, user_registered, user_activation_key, user_status, display_name FROM wp_users' . $whereSql . ' ORDER BY ID ASC LIMIT ? OFFSET ?';
+                $stmt = $conn->prepare($selectSql);
+                if (!$stmt) throw new Exception($conn->error);
+                $sTypes = $types . 'ii';
+                $sValues = array_merge($values, [$limit, $offset]);
+                $bind = array_merge([$sTypes], $sValues);
+                $tmp = [];
+                foreach ($bind as $k => $v) $tmp[$k] = &$bind[$k];
+                call_user_func_array([$stmt, 'bind_param'], $tmp);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                $rows = [];
+                while ($r = $res->fetch_assoc()) $rows[] = $r;
+                $stmt->close();
+                sendJson(['success' => true, 'total_rows' => $total, 'returned_rows' => count($rows), 'limit' => $limit, 'offset' => $offset, 'data' => $rows]);
+
+            } elseif ($method === 'POST') {
+                // POST /users — create
+                $data = get_request_body();
+                $user_login = $data['user_login'] ?? null;
+                $user_email = $data['user_email'] ?? null;
+                if (!$user_login || !$user_email) bad_request('user_login and user_email are required');
+
+                $user_pass           = $data['user_pass']           ?? '';
+                $user_nicename       = $data['user_nicename']       ?? $user_login;
+                $user_url            = $data['user_url']            ?? '';
+                $user_registered     = $data['user_registered']     ?? date('Y-m-d H:i:s');
+                $user_activation_key = $data['user_activation_key'] ?? '';
+                $user_status         = isset($data['user_status'])  ? (int)$data['user_status'] : 0;
+                $display_name        = $data['display_name']        ?? $user_login;
+
+                $sql = 'INSERT INTO wp_users (user_login, user_pass, user_nicename, user_email, user_url, user_registered, user_activation_key, user_status, display_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+                $stmt = $conn->prepare($sql);
+                if (!$stmt) throw new Exception('Prepare failed: ' . $conn->error);
+                $stmt->bind_param('sssssssiss', $user_login, $user_pass, $user_nicename, $user_email, $user_url, $user_registered, $user_activation_key, $user_status, $display_name);
+                if (!$stmt->execute()) throw new Exception('Insert failed: ' . $stmt->error);
+                $id = $stmt->insert_id;
+                $stmt->close();
+                sendJson(['success' => true, 'id' => $id], 201);
+
+            } else {
+                sendJson(['error' => 'Method not allowed'], 405);
+            }
+            exit;
+        }
+
+        // /users/{id}
+        $userId = (int)$segments[1];
+
+        if ($method === 'GET') {
+            $stmt = $conn->prepare('SELECT ID, user_login, user_nicename, user_email, user_url, user_registered, user_activation_key, user_status, display_name FROM wp_users WHERE ID = ?');
+            if (!$stmt) throw new Exception($conn->error);
+            $stmt->bind_param('i', $userId);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res->num_rows === 0) sendJson(['success' => false, 'error' => 'User not found'], 404);
+            $row = $res->fetch_assoc();
+            $stmt->close();
+            sendJson(['success' => true, 'data' => $row]);
+
+        } elseif ($method === 'PUT' || $method === 'PATCH') {
+            $data = get_request_body();
+            $allowed = ['user_login', 'user_pass', 'user_nicename', 'user_email', 'user_url', 'user_registered', 'user_activation_key', 'user_status', 'display_name'];
+            $fields = []; $types = ''; $values = [];
+            foreach ($allowed as $f) {
+                if (array_key_exists($f, $data)) {
+                    $fields[] = "$f = ?";
+                    $values[] = $data[$f];
+                    $types .= ($f === 'user_status') ? 'i' : 's';
+                }
+            }
+            if (count($fields) === 0) bad_request('No updatable fields provided');
+            $types .= 'i';
+            $values[] = $userId;
+            $sql = 'UPDATE wp_users SET ' . implode(', ', $fields) . ' WHERE ID = ?';
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) throw new Exception('Prepare failed: ' . $conn->error);
+            $bind = array_merge([$types], $values);
+            $tmp = [];
+            foreach ($bind as $k => $v) $tmp[$k] = &$bind[$k];
+            call_user_func_array([$stmt, 'bind_param'], $tmp);
+            if (!$stmt->execute()) throw new Exception('Update failed: ' . $stmt->error);
+            sendJson(['success' => true, 'affected' => $stmt->affected_rows]);
+
+        } elseif ($method === 'DELETE') {
+            $stmt = $conn->prepare('DELETE FROM wp_users WHERE ID = ?');
+            if (!$stmt) throw new Exception($conn->error);
+            $stmt->bind_param('i', $userId);
+            $stmt->execute();
+            $affected = $stmt->affected_rows;
+            $stmt->close();
+            sendJson(['success' => true, 'deleted' => $affected]);
+
+        } else {
+            sendJson(['error' => 'Method not allowed'], 405);
+        }
+        exit;
     }
 
     // Unknown top-level route

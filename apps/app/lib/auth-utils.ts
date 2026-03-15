@@ -1,16 +1,12 @@
-import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation';
+import { getSession } from './session';
 
 export async function getAuthUser() {
-  // TODO: Implement authentication without Payload CMS
-  return { email: 'admin@example.com', name: 'Admin' }
+  return getSession();
 }
 
 export async function requireAuth() {
-  const user = await getAuthUser()
-
-  if (!user) {
-    redirect('/')
-  }
-
-  return user
+  const user = await getSession();
+  if (!user) redirect('/admin/login');
+  return user;
 }

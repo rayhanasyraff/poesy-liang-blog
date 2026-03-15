@@ -1,7 +1,10 @@
 import express from "express";
+import compression from "compression";
 import wpPostRoutes from "./routes/wpPostRoutes";
 import blogRoutes from "./routes/blogRoutes";
 import migrationRoutes from "./routes/migrationRoutes";
+import userRoutes from "./routes/userRoutes";
+import authRoutes from "./routes/authRoutes";
 import { corsMiddleware } from "./middlewares/cors";
 import { config } from "./config/config";
 import { Server } from "http";
@@ -12,6 +15,7 @@ let PORT = config.port;
 const app = express();
 
 // Middleware
+app.use(compression());
 app.use(express.json());
 app.use(corsMiddleware);
 
@@ -19,6 +23,8 @@ app.use(corsMiddleware);
 app.use("/", wpPostRoutes);
 app.use("/", blogRoutes);
 app.use("/", migrationRoutes);
+app.use("/", userRoutes);
+app.use("/", authRoutes);
 
 // 404 handler
 app.use((_req, res) => {

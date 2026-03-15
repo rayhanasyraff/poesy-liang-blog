@@ -12,14 +12,13 @@ export default function ClapLikeButton({ blogId, initialLikes = 0 }: Props) {
   const [likes, setLikes] = useState<number>(initialLikes ?? 0);
   const [liked, setLiked] = useState<boolean>(false);
   const [burstKey, setBurstKey] = useState<number>(0);
-  const apiBase = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL || '') : '';
+  const apiBase = '/api/proxy';
   const storageKey = `liked:${String(blogId)}`;
 
   useEffect(() => {
     try { const v = localStorage.getItem(storageKey); if (v === '1') setLiked(true); } catch (e) {}
 
     (async () => {
-      if (!apiBase) return;
       try {
         const res = await fetch(`${apiBase}/blogs/${blogId}/likes`);
         if (!res.ok) return;
@@ -37,7 +36,6 @@ export default function ClapLikeButton({ blogId, initialLikes = 0 }: Props) {
     if (next) setBurstKey(k => k + 1);
 
     try {
-      if (!apiBase) return;
       if (next) {
         const res = await fetch(`${apiBase}/blogs/${blogId}/likes`, { method: 'POST' });
         const json = await res.json().catch(() => null);

@@ -23,13 +23,13 @@ export function getApiUrl(): string {
 }
 
 /**
- * Client-side version that uses the build-time resolved URL
+ * Client-side version — always routes through the Next.js proxy so the
+ * Express API URL is resolved server-side at request time (avoids stale
+ * build-time baked-in NEXT_PUBLIC_API_URL in the browser bundle).
  */
 export function getClientApiUrl(): string {
-  // In browser, we need to use the public env var that was set at build time
-  // or fall back to same-origin if not set
   if (typeof window !== 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    return '/api/proxy';
   }
 
   return getApiUrl();

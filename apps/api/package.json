@@ -9,5 +9,8 @@
     "start": "bun src/index.ts",
     "test": "bun test"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "@types/compression": "^1.8.1"
+  }
 }

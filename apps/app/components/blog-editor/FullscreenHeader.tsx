@@ -1,6 +1,7 @@
 'use client';
 
-import { ChevronLeft } from 'lucide-react';
+import React, { memo } from 'react';
+import { ChevronLeft, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -16,10 +17,15 @@ export interface FullscreenHeaderProps {
   /** Main-page mode: Publish button */
   onPublish?: () => void;
   isPublishing?: boolean;
+  /** Main-page mode: Unpublish button (only shown when blog is published) */
+  onUnpublish?: () => void;
+  /** Preview link — opens admin blog detail page in a new tab */
+  previewHref?: string;
   title?: string;
   showCenteredTitle?: boolean;
   lastDraftSavedAt?: Date | null;
   draftVersionNumber?: number | null;
+  publishedVersionNumber?: number | null;
   saveStatus?: 'idle' | 'saving' | 'saved' | 'error';
 }
 
@@ -49,17 +55,20 @@ const btnBase: React.CSSProperties = {
   flexShrink: 0,
 };
 
-export function FullscreenHeader({
+export const FullscreenHeader = memo(function FullscreenHeader({
   onDone,
   onBack,
   onSave,
   isSaving,
   onPublish,
   isPublishing,
+  onUnpublish,
+  previewHref,
   title,
   showCenteredTitle = true,
   lastDraftSavedAt,
   draftVersionNumber,
+  publishedVersionNumber,
   saveStatus,
 }: Readonly<FullscreenHeaderProps>) {
   const saveLabel = saveStatus === 'saving'
@@ -67,6 +76,14 @@ export function FullscreenHeader({
     : lastDraftSavedAt
       ? `Autosaved${draftVersionNumber != null ? ` v${draftVersionNumber}` : ''} · ${fmtSaveTime(lastDraftSavedAt)}`
       : null;
+
+  // Version status line: shown below save label in main mode
+  const versionLine = (() => {
+    if (draftVersionNumber == null) return null;
+    if (publishedVersionNumber == null) return `Draft v${draftVersionNumber} · Not published`;
+    if (draftVersionNumber === publishedVersionNumber) return `v${draftVersionNumber} · Published`;
+    return `Draft v${draftVersionNumber} · Live: v${publishedVersionNumber}`;
+  })();
 
   const isMainMode = !!onBack;
 
@@ -86,8 +103,7 @@ export function FullscreenHeader({
           alignItems: 'center',
           height: 48,
           padding: '0 12px',
-          backdropFilter: 'blur(8px)',
-          background: 'var(--background, rgba(255,255,255,0.9))',
+          background: 'var(--background, #fff)',
         }}
       >
         {/* Left side */}
@@ -114,20 +130,53 @@ export function FullscreenHeader({
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
           {isMainMode ? (
             <>
-              <button
-                type="button"
-                onClick={onSave}
-                disabled={isSaving}
-                style={{
-                  ...btnBase,
-                  border: '1px solid var(--border, rgba(0,0,0,.12))',
-                  background: 'transparent',
-                  color: 'var(--foreground, #111)',
-                  opacity: isSaving ? 0.5 : 1,
-                }}
-              >
-                {isSaving ? 'Saving…' : 'Save'}
-              </button>
+              {onSave && (
+                <button
+                  type="button"
+                  onClick={onSave}
+                  disabled={isSaving}
+                  style={{
+                    ...btnBase,
+                    border: '1px solid var(--border, rgba(0,0,0,.12))',
+                    background: 'transparent',
+                    color: 'var(--foreground, #111)',
+                    opacity: isSaving ? 0.5 : 1,
+                  }}
+                >
+                  {isSaving ? 'Saving…' : 'Save'}
+                </button>
+              )}
+              {previewHref && (
+                <a
+                  href={previewHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    ...btnBase,
+                    border: '1px solid var(--border, rgba(0,0,0,.12))',
+                    background: 'transparent',
+                    color: 'var(--foreground, #111)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <ExternalLink size={13} />
+                  Preview
+                </a>
+              )}
+              {onUnpublish && (
+                <button
+                  type="button"
+                  onClick={onUnpublish}
+                  style={{
+                    ...btnBase,
+                    border: '1px solid var(--border, rgba(0,0,0,.12))',
+                    background: 'transparent',
+                    color: 'var(--foreground, #111)',
+                  }}
+                >
+                  Unpublish
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onPublish}
@@ -174,9 +223,14 @@ export function FullscreenHeader({
                 {saveLabel}
               </div>
             )}
+            {!saveLabel && versionLine && (
+              <div style={{ fontSize: 10, color: 'var(--muted-foreground, rgba(0,0,0,0.4))', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {versionLine}
+              </div>
+            )}
           </motion.div>
         </div>
       )}
     </div>
   );
-}
+});

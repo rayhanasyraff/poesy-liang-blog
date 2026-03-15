@@ -15,7 +15,7 @@ export interface BlogEditorMetaProps {
   saveStatus?: 'idle' | 'saving' | 'saved' | 'error';
 }
 
-function fmtTime(date: Date | null): string {
+function fmt(date: Date | null): string {
   if (!date) return '—';
   const sameYear = date.getFullYear() === new Date().getFullYear();
   return date.toLocaleString(undefined, {
@@ -24,123 +24,81 @@ function fmtTime(date: Date | null): string {
     ...(!sameYear ? { year: 'numeric' } : {}),
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
   });
 }
 
-function MetaItem({ label, value }: { label: string; value: string }) {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-      <span style={{ color: 'var(--muted-foreground, rgba(0,0,0,0.4))', fontSize: 11 }}>{label}</span>
-      <span style={{ color: 'var(--foreground, rgba(0,0,0,0.65))', fontSize: 11, fontWeight: 500 }}>{value}</span>
-    </span>
-  );
-}
-
-function UnsavedItem({ label, value }: { label: string; value: string }) {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-      <span style={{
-        color: 'var(--muted-foreground, rgba(0,0,0,0.4))',
-        fontSize: 11,
-        textDecoration: 'underline',
-        textDecorationStyle: 'dotted',
-      }}>{label}</span>
-      <span style={{ color: 'var(--foreground, rgba(0,0,0,0.65))', fontSize: 11, fontWeight: 500 }}>{value}</span>
-    </span>
-  );
-}
-
-function Dot() {
-  return <span style={{ color: 'var(--muted-foreground, rgba(0,0,0,0.25))', fontSize: 11, flexShrink: 0 }}>·</span>;
-}
-
-const STATUS_STYLE: Record<BlogPublishStatus, { label: string; bg: string; color: string }> = {
-  unsaved:   { label: 'Unsaved',   bg: 'rgba(107,114,128,0.1)', color: 'rgba(107,114,128,0.9)' },
-  draft:     { label: 'Draft',     bg: 'rgba(234,179,8,0.12)',  color: 'rgba(161,120,0,0.95)'  },
-  published: { label: 'Published', bg: 'rgba(34,197,94,0.12)',  color: 'rgb(21,128,61)'        },
+const lineStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: 'var(--muted-foreground, rgba(0,0,0,0.45))',
+  lineHeight: '1.65',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
 };
 
-function StatusBadge({ status }: { status: BlogPublishStatus }) {
-  const { label, bg, color } = STATUS_STYLE[status];
-  return (
-    <span style={{
-      display: 'inline-block',
-      padding: '1px 7px',
-      borderRadius: 999,
-      fontSize: 11,
-      fontWeight: 600,
-      background: bg,
-      color,
-      flexShrink: 0,
-    }}>
-      {label}
-    </span>
-  );
-}
-
-function versionStr(n: number | null): string {
-  return n != null ? `v${n}` : '';
-}
+const strong: React.CSSProperties = {
+  color: 'var(--foreground, rgba(0,0,0,0.7))',
+  fontWeight: 500,
+};
 
 export function BlogEditorMeta({
-  publishStatus,
   createdAt,
   draftVersionNumber,
   publishedVersionNumber,
   lastDraftSavedAt,
   lastPublishedAt,
-  unsavedChangesAt,
   saveStatus,
 }: BlogEditorMetaProps) {
-  const ver = versionStr(draftVersionNumber);
-  const pubVer = versionStr(publishedVersionNumber);
+  const adminStatus: 'draft-ahead' | 'published' | 'draft-only' = (() => {
+    if (!publishedVersionNumber) return 'draft-only';
+    if (draftVersionNumber && draftVersionNumber > publishedVersionNumber) return 'draft-ahead';
+    return 'published';
+  })();
+
+  const hasDraft = draftVersionNumber != null;
+  const hasLive = publishedVersionNumber != null && lastPublishedAt != null;
 
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: '4px 8px',
-      padding: '4px 24px 8px',
-      flexShrink: 0,
-    }}>
-      <StatusBadge status={publishStatus} />
+    <div style={{ padding: '2px 24px 10px', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+
+      {/* Status indicator — only when relevant */}
+      {adminStatus === 'draft-ahead' && (
+        <div style={{ ...lineStyle, marginBottom: 1 }}>
+          <span style={{ color: 'rgba(161,120,0,0.9)', fontWeight: 600 }}>🟡 Draft ahead of published</span>
+        </div>
+      )}
+      {adminStatus === 'draft-only' && hasDraft && (
+        <div style={{ ...lineStyle, marginBottom: 1 }}>
+          <span style={{ color: 'rgba(107,114,128,0.75)', fontWeight: 600 }}>⚪ Not published yet</span>
+        </div>
+      )}
+
+      {/* Draft line */}
+      {hasDraft && (
+        <div style={lineStyle}>
+          <span style={strong}>Draft v{draftVersionNumber}</span>
+          {saveStatus === 'saving' && <span style={{ color: 'rgba(161,120,0,0.8)' }}>{' · Saving…'}</span>}
+          {saveStatus === 'error' && <span style={{ color: 'rgb(220,38,38)' }}>{' · Save failed'}</span>}
+          {saveStatus !== 'saving' && saveStatus !== 'error' && lastDraftSavedAt && (
+            <span>{' · Saved '}{fmt(lastDraftSavedAt)}</span>
+          )}
+        </div>
+      )}
+
+      {/* Live version line */}
+      {hasLive && (
+        <div style={lineStyle}>
+          {'Live version: '}
+          <span style={strong}>v{publishedVersionNumber}</span>
+          {' · '}{fmt(lastPublishedAt)}
+        </div>
+      )}
+
+      {/* Created line */}
       {createdAt && (
-        <>
-          <Dot />
-          <MetaItem label="Created" value={fmtTime(createdAt)} />
-        </>
-      )}
-      {saveStatus === 'saving' && !lastDraftSavedAt && (
-        <>
-          <Dot />
-          <MetaItem label="Autosaved Draft" value="Saving…" />
-        </>
-      )}
-      {saveStatus === 'error' && !lastDraftSavedAt && (
-        <>
-          <Dot />
-          <MetaItem label="Autosaved Draft" value="Save failed" />
-        </>
-      )}
-      {lastDraftSavedAt && (
-        <>
-          <Dot />
-          <UnsavedItem
-            label={saveStatus === 'saving' ? 'Saving…' : 'Autosaved Draft'}
-            value={saveStatus === 'saving' ? '' : `${ver}${ver ? ' · ' : ''}${fmtTime(lastDraftSavedAt)}`}
-          />
-        </>
-      )}
-      {lastPublishedAt && (
-        <>
-          <Dot />
-          <MetaItem
-            label="Published"
-            value={`${pubVer}${pubVer ? ' · ' : ''}${fmtTime(lastPublishedAt)}`}
-          />
-        </>
+        <div style={lineStyle}>
+          {'Created '}{fmt(createdAt)}
+        </div>
       )}
     </div>
   );
