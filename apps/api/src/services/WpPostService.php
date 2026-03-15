@@ -7,7 +7,7 @@ use GuzzleHttp\Exception\GuzzleException;
 
 class WpPostService
 {
-    private Client $http;
+    private $http;
 
     public function __construct()
     {
@@ -114,8 +114,8 @@ class WpPostService
     public static function combineAndSort(array $comPosts, array $netPosts): array
     {
         $all = array_merge(
-            array_map(fn($p) => self::transformWpPost($p, 'poesyliang.com'), $comPosts),
-            array_map(fn($p) => self::transformWpPost($p, 'poesyliang.net'), $netPosts)
+            array_map(function ($p) { return self::transformWpPost($p, 'poesyliang.com'); }, $comPosts),
+            array_map(function ($p) { return self::transformWpPost($p, 'poesyliang.net'); }, $netPosts)
         );
 
         usort($all, function (array $a, array $b) {

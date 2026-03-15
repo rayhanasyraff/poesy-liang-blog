@@ -7,7 +7,7 @@ use App\Services\VersioningService;
 
 class BlogController
 {
-    private static string $selectCols = 'id, blog_name, blog_title, blog_excerpt,
+    private static $selectCols = 'id, blog_name, blog_title, blog_excerpt,
         blog_date_published, blog_date_published_gmt, blog_content, blog_status,
         comment_status, notification_status, blog_date_modified, blog_date_modified_gmt,
         tags, blog_visibility, like_count, blog_date_created, blog_date_created_gmt,
@@ -296,7 +296,7 @@ class BlogController
         $stmt->close();
 
         if ($excludeId !== null) {
-            $rows = array_filter($rows, fn($r) => (string)$r['id'] !== (string)$excludeId);
+            $rows = array_filter($rows, function ($r) use ($excludeId) { return (string)$r['id'] !== (string)$excludeId; });
         }
 
         Helpers::sendJson(['success' => true, 'available' => count($rows) === 0]);

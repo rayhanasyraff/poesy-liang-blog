@@ -9,7 +9,7 @@ use App\Helpers;
  */
 class VersioningService
 {
-    private \mysqli $db;
+    private $db;
 
     public function __construct(\mysqli $db)
     {
@@ -185,19 +185,25 @@ class VersioningService
         foreach ($allowed as $f) {
             if (!array_key_exists($f, $fields)) continue;
             $val = $fields[$f];
-            $setParts[] = "$f = ?";
             if ($val === null) {
-                $setParts[array_key_last($setParts)] = "$f = NULL";
+                $setParts[] = "$f = NULL";
                 continue;
             }
+            $setParts[] = "$f = ?";
             $values[] = $val;
             $types   .= is_int($val) ? 'i' : 's';
         }
 
-        // Remove NULL entries from set parts that were already written inline
-        $setParts = array_values($setParts);
-        $nullParts = array_filter($setParts, fn($p) => strpos($p, '= NULL') !== false);
-        $paramParts = array_diff($setParts, $nullParts);
+        // Separate NULL-literal parts from parameterised parts
+        $nullParts  = [];
+        $paramParts = [];
+        foreach ($setParts as $p) {
+            if (strpos($p, '= NULL') !== false) {
+                $nullParts[] = $p;
+            } else {
+                $paramParts[] = $p;
+            }
+        }
 
         if (empty($paramParts) && empty($nullParts)) return;
 

@@ -96,7 +96,7 @@ class NormalizeController
 
                 $hasCommitted = (bool)array_filter(
                     $versions,
-                    fn($v) => $v['status'] === 'committed' || $v['status'] === 'published'
+                    function ($v) { return $v['status'] === 'committed' || $v['status'] === 'published'; }
                 );
                 if ($hasCommitted) continue;
 

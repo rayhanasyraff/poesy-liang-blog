@@ -3,7 +3,7 @@
     "description": "PoesyLiang PHP API",
     "type": "project",
     "require": {
-        "php": ">=7.4",
+        "php": ">=7.2",
         "guzzlehttp/guzzle": "^7.0",
         "symfony/deprecation-contracts": "^2.5"
     },

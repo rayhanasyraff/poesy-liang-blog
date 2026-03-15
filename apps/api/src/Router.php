@@ -3,7 +3,7 @@ namespace App;
 
 class Router
 {
-    private array $routes = [];
+    private $routes = [];
 
     public function add(string $method, string $pattern, callable $handler): void
     {
