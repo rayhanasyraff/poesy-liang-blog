@@ -3,7 +3,7 @@ namespace App;
 
 class Config
 {
-    private static ?array $data = null;
+    private static $data = null;
 
     public static function get(): array
     {

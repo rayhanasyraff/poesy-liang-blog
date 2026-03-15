@@ -3,7 +3,7 @@ namespace App;
 
 class Database
 {
-    private static ?\mysqli $instance = null;
+    private static $instance = null;
 
     public static function get(): \mysqli
     {

@@ -29,8 +29,8 @@ else
 fi
 
 # ── 5. Push to remote origin (GitHub) ────────────────────────────────────────
-echo "Pushing to origin..."
-git push
+# echo "Pushing to origin..."
+# git push
 
 # ── 6. Deploy changed PHP source files to server via git-ftp ─────────────────
 echo "Deploying to server via git-ftp..."
