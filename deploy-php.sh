@@ -22,6 +22,8 @@ cd ../../
 
 # 4️⃣ Push changed files via git-ftp
 echo "Uploading changed files via git-ftp..."
+git add apps/api/vendor.zip
+git commit -am "Add vendor.zip for deployment"
 git ftp push
 
 # 5️⃣ Upload vendor.zip via curl (FTP)
