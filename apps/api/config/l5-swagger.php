@@ -8,7 +8,7 @@ return [
                 'title' => 'PoesyLiang Blog API',
             ],
             'routes' => [
-                'api' => 'api/documentation',
+                'api' => 'documentation',
             ],
             'paths' => [
                 'use_absolute_path' => env('L5_SWAGGER_USE_ABSOLUTE_PATH', true),
