@@ -26,9 +26,9 @@ return [
             'docs'        => 'docs',
             'oauth2_callback' => 'api/oauth2-callback',
             'middleware' => [
-                'api'             => ['bearer'],
-                'asset'           => ['bearer'],
-                'docs'            => ['bearer'],
+                'api'             => [],
+                'asset'           => [],
+                'docs'            => [],
                 'oauth2_callback' => [],
             ],
             'group_options' => [],
