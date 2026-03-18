@@ -11,7 +11,7 @@ DEPLOY_KEY="xv3DEXuHsHn969ducYT3"
 
 # ── 1. Install PHP dependencies and regenerate autoloader ─────────────────────
 echo "Installing PHP dependencies..."
-(cd "$API_PHP_DIR" && composer install --no-dev --optimize-autoloader)
+(cd "$API_PHP_DIR" && COMPOSER_DISABLE_TLS=1 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --ignore-platform-reqs)
 
 # ── 2. Package vendor directory into vendor.zip ───────────────────────────────
 echo "Packaging vendor..."
