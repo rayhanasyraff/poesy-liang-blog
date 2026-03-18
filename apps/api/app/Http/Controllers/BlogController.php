@@ -13,14 +13,14 @@ use Illuminate\Support\Facades\Log;
  */
 class BlogController extends Controller
 {
-    private VersioningService $versioning;
+    private $versioning;
 
     public function __construct(VersioningService $versioning)
     {
         $this->versioning = $versioning;
     }
 
-    private array $selectCols = [
+    private $selectCols = [
         'id', 'blog_name', 'blog_title', 'blog_excerpt',
         'blog_date_published', 'blog_date_published_gmt', 'blog_content', 'blog_status',
         'comment_status', 'notification_status', 'blog_date_modified', 'blog_date_modified_gmt',
@@ -178,7 +178,7 @@ class BlogController extends Controller
         $rows  = $query->get();
 
         if ($excludeId !== null) {
-            $rows = $rows->filter(fn($r) => (string)$r->id !== (string)$excludeId);
+            $rows = $rows->filter(function ($r) use ($excludeId) { return (string)$r->id !== (string)$excludeId; });
         }
 
         return response()->json(['success' => true, 'available' => $rows->isEmpty()]);

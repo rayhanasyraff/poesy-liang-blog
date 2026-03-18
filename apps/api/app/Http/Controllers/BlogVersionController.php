@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
  */
 class BlogVersionController extends Controller
 {
-    private VersioningService $versioning;
+    private $versioning;
 
     public function __construct(VersioningService $versioning)
     {

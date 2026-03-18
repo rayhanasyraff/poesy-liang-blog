@@ -72,7 +72,7 @@ class NormalizeController extends Controller
                 $isPublished = in_array($blog->blog_status, ['published', 'publish']);
                 if (!$isPublished) continue;
 
-                $hasCommitted = $versions->contains(fn($v) => in_array($v->status, ['committed', 'published']));
+                $hasCommitted = $versions->contains(function ($v) { return in_array($v->status, ['committed', 'published']); });
                 if ($hasCommitted) continue;
 
                 $summary['committedVersionsCreated']++;

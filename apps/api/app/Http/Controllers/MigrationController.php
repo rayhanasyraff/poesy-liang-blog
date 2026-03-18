@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
  */
 class MigrationController extends Controller
 {
-    private WpPostService $wpPostService;
+    private $wpPostService;
 
     public function __construct(WpPostService $wpPostService)
     {

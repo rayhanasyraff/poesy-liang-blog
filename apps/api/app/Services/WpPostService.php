@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 
 class WpPostService
 {
-    private Client $http;
+    private $http;
 
     public function __construct()
     {
@@ -77,8 +77,8 @@ class WpPostService
         $now    = now()->toDateTimeString();
         $nowGmt = now()->utc()->toDateTimeString();
 
-        $normalizeStatus  = fn($s) => strtolower(trim($s)) === 'draft' ? 'draft' : 'published';
-        $normalizeComment = fn($s) => strtolower(trim($s)) === 'open' ? 'open' : 'close';
+        $normalizeStatus  = function ($s) { return strtolower(trim($s)) === 'draft' ? 'draft' : 'published'; };
+        $normalizeComment = function ($s) { return strtolower(trim($s)) === 'open' ? 'open' : 'close'; };
         $normalizeNotif   = function ($s) {
             $n = strtolower(trim($s));
             return ($n === 'open' || $n === 'all') ? 'all' : 'none';
@@ -113,10 +113,10 @@ class WpPostService
     public static function combineAndSort(array $comPosts, array $netPosts): array
     {
         $all = array_merge(
-            array_map(fn($p) => self::transformWpPost($p, 'poesyliang.com'), $comPosts),
-            array_map(fn($p) => self::transformWpPost($p, 'poesyliang.net'), $netPosts)
+            array_map(function ($p) { return self::transformWpPost($p, 'poesyliang.com'); }, $comPosts),
+            array_map(function ($p) { return self::transformWpPost($p, 'poesyliang.net'); }, $netPosts)
         );
-        usort($all, fn($a, $b) => strtotime($a['blog_date_published']) <=> strtotime($b['blog_date_published']));
+        usort($all, function ($a, $b) { return strtotime($a['blog_date_published']) <=> strtotime($b['blog_date_published']); });
         return $all;
     }
 }
