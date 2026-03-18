@@ -12,8 +12,17 @@ if ($zip->open($zipPath) === TRUE) {
     $zip->extractTo($extractTo);
     $zip->close();
     unlink($zipPath);
-    echo "Vendor extracted successfully!";
+    echo "Vendor extracted successfully!\n";
 } else {
     http_response_code(500);
     echo "Failed to extract vendor.zip";
 }
+
+// Clear Laravel bootstrap cache so config/route changes take effect
+$cacheDir = __DIR__ . '/../bootstrap/cache';
+$cleared = [];
+foreach (glob($cacheDir . '/*.php') as $file) {
+    unlink($file);
+    $cleared[] = basename($file);
+}
+echo "Cache cleared: " . (empty($cleared) ? 'nothing to clear' : implode(', ', $cleared)) . "\n";
