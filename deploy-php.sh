@@ -11,7 +11,8 @@ DEPLOY_KEY="xv3DEXuHsHn969ducYT3"
 
 # ── 1. Install PHP dependencies and regenerate autoloader ─────────────────────
 echo "Installing PHP dependencies..."
-(cd "$API_PHP_DIR" && COMPOSER_DISABLE_TLS=1 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --ignore-platform-reqs)
+GIT_CA_BUNDLE="/c/Program Files/Git/mingw64/etc/ssl/certs/ca-bundle.crt"
+(cd "$API_PHP_DIR" && COMPOSER_ALLOW_SUPERUSER=1 CURL_CA_BUNDLE="$GIT_CA_BUNDLE" php -d curl.cainfo="$GIT_CA_BUNDLE" /c/composer/composer.phar install --no-dev --optimize-autoloader --ignore-platform-req=ext-fileinfo --ignore-platform-req=ext-sockets --ignore-platform-req=ext-pcntl --ignore-platform-req=ext-posix)
 
 # ── 2. Package vendor directory into vendor.zip ───────────────────────────────
 echo "Packaging vendor..."

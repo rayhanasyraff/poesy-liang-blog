@@ -49,10 +49,16 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "disable-tls": true,
+        "platform": {
+            "php": "7.2.34"
+        },
         "audit": {
             "ignore": ["PKSA-y2cr-5h3j-g3ys"]
         }
     },
+    "repositories": [
+        {"type": "composer", "url": "http://packagist.org", "allow_ssl_downgrade": true}
+    ],
     "minimum-stability": "dev",
     "prefer-stable": true
 }
