@@ -36,9 +36,13 @@ fi
 echo "Deploying to server via git-ftp..."
 git ftp push
 
-# ── 7. Upload vendor.zip to server via FTP ───────────────────────────────────
+# ── 7. Upload vendor.zip and .env to server via FTP ──────────────────────────
 echo "Uploading vendor.zip..."
 curl -s -T "$ZIP_FILE" "$FTP_URL/vendor.zip" --user "$FTP_USER:$FTP_PASS"
+echo ""
+
+echo "Uploading .env..."
+curl -s -T "$API_PHP_DIR/.env" "$FTP_URL/.env" --user "$FTP_USER:$FTP_PASS"
 echo ""
 
 # ── 8. Trigger vendor extraction on server ───────────────────────────────────
