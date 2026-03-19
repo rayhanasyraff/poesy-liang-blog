@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Pencil } from "lucide-react";
 
-import { getAdminBlogBySlug } from "@/lib/api";
+import { getAdminBlogBySlug } from "@/services/blogService";
 import { CustomMDX } from "@/components/mdx";
 import TableOfContents from "@/components/table-of-contents";
 import { extractHeadings, formatDate } from "@/lib/utils";

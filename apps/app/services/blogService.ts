@@ -1,12 +1,76 @@
-import type { Blog, ApiBlog } from '@/types/blog';
-import { convertApiBlogToBlog } from './blog-utils';
-import { fetchBlogs, fetchBlogById, fetchBlogVersions } from '@/api/api';
+import { getBlogs, getBlogById, getBlogVersions } from '@/api/resources/blogApi';
+import { convertApiBlogToBlog } from '@/lib/blog-utils';
+import type { ApiBlog, Blog } from '@/types/blog';
 
 // Cache for all API blogs
 let allApiBlogsCache: ApiBlog[] | null = null;
 
+export const PAGE_SIZE = 20;
+
+// Admin/public page helpers moved from apps/app/api/blog.ts
+export async function fetchAdminPage(offset: number): Promise<{ rows: any[]; nextOffset: number | undefined }> {
+  const rows = await getBlogs(PAGE_SIZE, offset, true);
+  const nextOffset = rows.length === PAGE_SIZE ? offset + PAGE_SIZE : undefined;
+  const blogs = rows.map((row: any) => {
+    const base = convertApiBlogToBlog(row as unknown as ApiBlog);
+    const draftV = row.latest_draft_version_number ?? null;
+    const committedV = row.latest_committed_version_number ?? null;
+    const isDraftAhead = draftV != null && (committedV == null || draftV > committedV);
+    return {
+      ...base,
+      content: row.latest_blog_content ?? base.content,
+      tags: row.latest_tags ?? base.tags,
+      metadata: {
+        ...base.metadata,
+        title: isDraftAhead
+          ? (row.latest_draft_blog_title ?? base.metadata.title)
+          : (row.latest_committed_blog_title ?? base.metadata.title),
+        summary: row.latest_blog_excerpt || base.metadata.summary,
+      },
+      apiData: base.apiData
+        ? {
+            ...base.apiData,
+            blog_version: row.latest_version_number ?? undefined,
+            latest_draft_version_number: row.latest_draft_version_number ?? undefined,
+            latest_draft_blog_title: row.latest_draft_blog_title ?? undefined,
+            latest_draft_saved_at: row.latest_draft_saved_at ?? undefined,
+            latest_committed_version_number: row.latest_committed_version_number ?? undefined,
+            latest_committed_blog_title: row.latest_committed_blog_title ?? undefined,
+            latest_committed_published_at: row.latest_committed_published_at ?? undefined,
+          }
+        : base.apiData,
+    };
+  });
+  return { rows: blogs, nextOffset };
+}
+
+// Public homepage: published + public blogs only
+export async function fetchPublicPage(offset: number): Promise<{ rows: any[]; nextOffset: number | undefined }> {
+  
+  const blogs = await getBlogs(PAGE_SIZE, offset, true, 'published', 'public', 'committed');  
+  const apiRows: ApiBlog[] = Array.isArray(blogs) ? blogs : [blogs];
+  const rows = apiRows.map((row: any) => {
+    const base = convertApiBlogToBlog(row as unknown as ApiBlog);
+    return {
+      ...base,
+      content: (row as any).latest_blog_content ?? base.content,
+      tags: (row as any).latest_tags ?? base.tags,
+      metadata: {
+        ...base.metadata,
+        title: (row as any).latest_blog_title || base.metadata.title,
+        summary: (row as any).latest_blog_excerpt || base.metadata.summary,
+      },
+      apiData: base.apiData
+        ? { ...base.apiData, blog_version: (row as any).latest_version_number ?? undefined }
+        : base.apiData,
+    };
+  });
+  const nextOffset = apiRows.length === PAGE_SIZE ? offset + PAGE_SIZE : undefined;
+  return { rows, nextOffset };
+}
+
 // Fetch ALL blogs from API with caching
-export async function fetchAllBlogsFromApi(): Promise<ApiBlog[]> {
+export async function fetchAllBlogs(): Promise<ApiBlog[]> {
   if (allApiBlogsCache) {
     return allApiBlogsCache;
   }
@@ -19,10 +83,9 @@ export async function fetchAllBlogsFromApi(): Promise<ApiBlog[]> {
 
     // Keep fetching until we get all blogs
     while (hasMore) {
-      const blogs = await fetchBlogs(limit, offset);
+      const blogs = await getBlogs(limit, offset);
 
       if (blogs.length === 0) {
-        hasMore = false;
         break;
       }
 
@@ -44,18 +107,9 @@ export async function fetchAllBlogsFromApi(): Promise<ApiBlog[]> {
   }
 }
 
-export async function fetchBlogsFromApi(limit = 50, offset = 0) {
-  try {
-    return await fetchBlogs(limit, offset);
-  } catch (error) {
-    console.error('Error fetching blogs from API:', error);
-    return []; // Return empty array instead of throwing to allow MDX blogs to still work
-  }
-}
-
 export async function fetchBlogFromApiById(id: number) {
   try {
-    return await fetchBlogById(id);
+    return await getBlogById(id);
   } catch (error) {
     console.error('Error fetching blog from API:', error);
     return null;
@@ -68,7 +122,7 @@ export async function fetchBlogsCompatible(): Promise<Blog[]> {
     // Fetch API blogs
     let apiBlogs: ApiBlog[] = [];
     try {
-      apiBlogs = await fetchBlogsFromApi(50);
+      apiBlogs = await getBlogs();
     } catch (apiError) {
       console.warn('API blogs failed to load:', apiError);
       return [];
@@ -104,7 +158,7 @@ export async function fetchBlogsCompatible(): Promise<Blog[]> {
 // draft content back to the blogs table row.
 async function overlayCommittedVersion(apiBlog: ApiBlog): Promise<Blog> {
   try {
-    const versions = await fetchBlogVersions(apiBlog.id);
+    const versions = await getBlogVersions(apiBlog.id);
     if (versions && versions.length > 0) {
       const committed = versions.filter(v => v.status === 'committed' || v.status === 'published');
       if (committed.length > 0) {
@@ -133,8 +187,8 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
   try {
     // Check if slug starts with "blog-" and extract ID
     if (slug.startsWith('blog-')) {
-      const id = parseInt(slug.replace('blog-', ''));
-      if (!isNaN(id)) {
+      const id = Number.parseInt(slug.replace('blog-', ''));
+      if (!Number.isNaN(id)) {
         const apiBlog = await fetchBlogFromApiById(id);
         if (apiBlog) {
           // User side: only show published blogs
@@ -150,7 +204,7 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
 
     // Try fetching all API blogs to find by blog_name (slug) — published only
     try {
-      const apiBlogs = await fetchAllBlogsFromApi();
+      const apiBlogs = await fetchAllBlogs();
       const matchingBlog = apiBlogs.find(blog => {
         if (!(blog.blog_status === 'publish' || blog.blog_status === 'published')) return false;
         const blogSlugRaw = (blog.blog_name || '').toString();
@@ -190,11 +244,11 @@ export async function getAdminBlogBySlug(slug: string): Promise<Blog | null> {
     // Resolve slug to ApiBlog (no status filter — admins see all)
     // Handle plain numeric id (e.g. "123")
     const numericId = Number(slug);
-    if (!isNaN(numericId) && slug.trim() !== '') {
-      apiBlog = await fetchBlogFromApiById(numericId);
+    if (!Number.isNaN(numericId) && slug.trim() !== '') {
+      apiBlog = await getBlogById(numericId);
     } else if (slug.startsWith('blog-')) {
-      const id = parseInt(slug.replace('blog-', ''));
-      if (!isNaN(id)) {
+      const id = Number.parseInt(slug.replace('blog-', ''));
+      if (!Number.isNaN(id)) {
         apiBlog = await fetchBlogFromApiById(id);
       }
     }
@@ -202,7 +256,7 @@ export async function getAdminBlogBySlug(slug: string): Promise<Blog | null> {
     if (!apiBlog) {
       const encodedSlug = encodeURIComponent(slug).toLowerCase();
       const decodedSlug = decodeURIComponent(slug).toLowerCase();
-      const apiBlogs = await fetchAllBlogsFromApi();
+      const apiBlogs = await fetchAllBlogs();
       apiBlog = apiBlogs.find(blog => {
         const blogSlug = (blog.blog_name || '').toString().toLowerCase();
         return blogSlug === slug.toLowerCase() ||
@@ -216,7 +270,7 @@ export async function getAdminBlogBySlug(slug: string): Promise<Blog | null> {
 
     // Fetch all versions and pick the latest by version_number
     try {
-      const versions = await fetchBlogVersions(apiBlog.id);
+      const versions = await getBlogVersions(apiBlog.id);
       if (versions && versions.length > 0) {
         const latest = versions.reduce((a, b) =>
           b.version_number > a.version_number ? b : a

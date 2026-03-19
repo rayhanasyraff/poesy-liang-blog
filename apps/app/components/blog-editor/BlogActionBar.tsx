@@ -31,8 +31,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { BlogSettings, BlogVersionSummary } from '@/types/blog';
-import { BlogEditorToolbar } from './toolbar/BlogEditorToolbar';
-import { BlogEditorToolbarNew } from './toolbar/BlogEditorToolbarNew';
+// import { BlogEditorToolbar } from './toolbar/BlogEditorToolbar';
+// import { BlogEditorToolbarNew } from './toolbar/BlogEditorToolbarNew';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -935,7 +935,7 @@ export function BlogActionBar({
 
   return (
     <>
-      {/* <motion.div
+     <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 8 }}
@@ -990,9 +990,9 @@ export function BlogActionBar({
             disabled={!onDeleteBlog}
           />
         </div>
-      </motion.div> */}
-      <BlogEditorToolbar />
-      <BlogEditorToolbarNew />
+      </motion.div>
+      {/* <BlogEditorToolbar /> */}
+      {/* <BlogEditorToolbarNew /> */}
       <NewDraftModal
         open={newDraftOpen}
         onClose={() => setNewDraftOpen(false)}

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { apiClient } from '@/api/client';
+import { apiClient } from '@/api/core/client';
 import { useRouter } from 'next/navigation';
 import type { BlogVersionSummary } from '@/types/blog';
 
@@ -54,7 +54,7 @@ export function VersionHistoryModal({ blogId, blogTitle, onClose, onEdited }: Ve
     if (!blogId) return;
     setActionLoading(versionId);
     try {
-      await apiClient.post(`/blogs/${blogId}/publish/${versionId}`, {});
+      await apiClient.post(`/blogs/${blogId}/versions/${versionId}/publish`, {});
       onEdited();
       onClose();
     } catch (err) {
@@ -68,7 +68,7 @@ export function VersionHistoryModal({ blogId, blogTitle, onClose, onEdited }: Ve
     if (!blogId) return;
     setActionLoading(versionId);
     try {
-      await apiClient.post(`/blogs/${blogId}/revert/${versionId}`, {});
+      await apiClient.post(`/blogs/${blogId}/versions/${versionId}/revert`, {});
       onEdited();
       onClose();
     } catch (err) {

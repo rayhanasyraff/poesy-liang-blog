@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { getBlogBySlug } from "@/lib/api";
+import { getBlogBySlug } from "@/services/blogService";
 import { CustomMDX } from "@/components/mdx";
 import TableOfContents from "@/components/table-of-contents";
 import { extractHeadings, formatDate } from "@/lib/utils";

@@ -26,13 +26,15 @@ export async function loginAction(
     return { error: 'Could not reach the authentication server.' };
   }
 
+  let body: any = {};
+  try { body = await res.json(); } catch {}
+
   if (!res.ok) {
-    let body: any = {};
-    try { body = await res.json(); } catch {}
     return { error: body?.error ?? 'Invalid email or password.' };
   }
 
-  await setSession(email);
+  const jwt = body?.token ?? null;
+  await setSession(email, jwt);
   redirect('/admin');
 }
 

@@ -9,15 +9,6 @@ import { highlight } from "sugar-high";
 import TurndownService from "turndown";
 import { CopyCode } from "./copy-code";
 import { ExpandableCode } from "./expandable-code";
-import {
-  TaskSimulator,
-  RaceConditionVisualizer,
-  GoroutineScheduler,
-  ChannelSimulator,
-  UnbufferedChannelDemo,
-  RealtimeAudioFlow,
-} from "./interactive-components";
-import { CodePlayground } from "./interactive-components/code-playground";
 
 function Table({ data }) {
   const headers = data.headers.map((header, index) => (
@@ -327,13 +318,6 @@ const components = {
   LinkCard,
   BuyMeACoffee,
   InstagramEmbed,
-  TaskSimulator,
-  RaceConditionVisualizer,
-  GoroutineScheduler,
-  ChannelSimulator,
-  UnbufferedChannelDemo,
-  CodePlayground,
-  RealtimeAudioFlow,
   Video,
 };
 

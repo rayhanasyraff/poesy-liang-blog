@@ -14,11 +14,12 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
-| GET routes: static bearer token only (g6N3wnb)
-| POST/PUT/PATCH/DELETE routes: bearer + JWT
+| GET routes:               bearer token only (static API key)
+| POST/PUT/PATCH/DELETE:    jwt.auth only (user JWT from /auth/login)
+| /auth/login:              bearer only (no JWT yet — this is how you get one)
 */
 
-// ── Bearer token only ─────────────────────────────────────────────────────
+// ── Bearer token only (reads + login) ────────────────────────────────────
 
 Route::middleware('bearer')->group(function () {
 
@@ -45,9 +46,9 @@ Route::middleware('bearer')->group(function () {
     Route::get('/poesyliang.net/wp-posts', [WpPostController::class, 'getFromNet']);
 });
 
-// ── Bearer + JWT (write operations) ──────────────────────────────────────
+// ── JWT only (write operations) ───────────────────────────────────────────
 
-Route::middleware(['bearer', 'jwt.auth'])->group(function () {
+Route::middleware('jwt.auth')->group(function () {
 
     // Blog writes
     Route::post('/blogs',                 [BlogController::class, 'store']);

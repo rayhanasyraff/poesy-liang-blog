@@ -10,8 +10,6 @@ import {
   MessageSquare,
   Bell,
   ThumbsUp,
-  Clock,
-  Calendar,
   FileText,
 } from 'lucide-react';
 

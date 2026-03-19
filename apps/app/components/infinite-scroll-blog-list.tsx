@@ -1,18 +1,16 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
-import type { Blog, ApiBlog, ApiBlogWithVersion } from "@/types/blog";
+import type { Blog } from "@/types/blog";
 import { BlogCard } from './blog-card';
 import { usePathname, useRouter } from 'next/navigation';
 import Separator from "./shared/separator";
-import { convertApiBlogToBlog } from '@/lib/blog-utils';
-import { useBlogStore } from '@/stores/useBlogStore';
-import { fetchBlogsWithVersions } from '@/api/api';
+import { usePageStore } from '@/stores/usePageStore';
+import { useSoftDeleteBlog } from '@/hooks/useSoftDeleteBlog';
 
-// Swipeable list for admin
 import {
   LeadingActions,
   SwipeableList,
@@ -25,7 +23,7 @@ import 'react-swipeable-list/dist/styles.css';
 import { Edit3, Trash2, RotateCcw } from 'lucide-react';
 import { VersionHistoryModal } from './admin/VersionHistoryModal';
 
-import { fetchAdminPage, fetchPublicPage } from '@/api/blog';
+import { fetchAdminPage, fetchPublicPage } from '@/services/blogService';
 
 // ── Data fetchers are provided by apps/app/api/blog.ts — see those implementations
 
@@ -115,11 +113,8 @@ export default function InfiniteScrollBlogList() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const {
-    adminScrollY, publicScrollY,
-    setAdminScrollY, setPublicScrollY,
-    removedIds, addRemovedId, restoreId,
-  } = useBlogStore();
+  const { scrollY, setScrollY } = usePageStore();
+  const { deleteBlog: softDelete, undo: undoDelete, undoVisible } = useSoftDeleteBlog('admin-blog-posts');
 
   // ── Infinite query ──────────────────────────────────────────────────────────
 
@@ -166,12 +161,9 @@ export default function InfiniteScrollBlogList() {
   }, []);
 
   const allRows = data ? data.pages.flatMap((d) => d.rows) : [];
-  const removedFiltered = allRows.filter(
-    (b) => !((b.apiData as any)?.id && removedIds.includes((b.apiData as any).id))
-  );
   const displayRows = isAdmin && adminFilter !== 'all'
-    ? removedFiltered.filter((b) => getBlogStatus(b.apiData) === adminFilter)
-    : removedFiltered;
+    ? allRows.filter((b) => getBlogStatus(b.apiData) === adminFilter)
+    : allRows;
 
   // ── Virtualizer ─────────────────────────────────────────────────────────────
 
@@ -195,76 +187,28 @@ export default function InfiniteScrollBlogList() {
   // ── Scroll position save/restore ────────────────────────────────────────────
 
   useEffect(() => {
-    const saved = isAdmin ? adminScrollY : publicScrollY;
-    if (saved > 0) window.scrollTo(0, saved);
+    if (scrollY > 0) window.scrollTo(0, scrollY);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (isAdmin) setAdminScrollY(window.scrollY);
-      else setPublicScrollY(window.scrollY);
-    };
+    const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isAdmin, setAdminScrollY, setPublicScrollY]);
+  }, [setScrollY]);
 
   // ── Delete UX ───────────────────────────────────────────────────────────────
 
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [candidateBlog, setCandidateBlog] = React.useState<Blog | null>(null);
-  const [undoVisible, setUndoVisible] = React.useState(false);
-  const [undoBlogId, setUndoBlogId] = React.useState<number | null>(null);
-  const pendingTimeoutsRef = useRef<Record<number, number>>({});
-
-  const scheduleDelete = React.useCallback((blog: Blog) => {
-    const id = (blog.apiData as any)?.id;
-    if (!id) { alert('Cannot delete this blog (missing id)'); return; }
-
-    addRemovedId(id);
-    setUndoVisible(true);
-    setUndoBlogId(id);
-
-    const timer = window.setTimeout(async () => {
-      try {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (process.env.NEXT_PUBLIC_API_TOKEN) headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_API_TOKEN}`;
-        const res = await fetch(`${API_BASE_URL}/blogs/${id}`, { method: 'DELETE', headers });
-        const json = await res.json().catch(() => ({ success: res.ok }));
-        if (!res.ok || !json.success) {
-          console.error('Failed to delete on server', json);
-          restoreId(id);
-        } else {
-          await queryClient.invalidateQueries({ queryKey: ['admin-blog-posts'] });
-        }
-      } catch (err) {
-        console.error('Delete failed', err);
-        restoreId(id);
-      } finally {
-        delete pendingTimeoutsRef.current[id];
-        setUndoVisible(false);
-        setUndoBlogId(null);
-      }
-    }, 500);
-
-    pendingTimeoutsRef.current[id] = timer;
-  }, [addRemovedId, queryClient, restoreId]);
 
   const handleDeleteClick = React.useCallback((blog: Blog) => { setCandidateBlog(blog); setConfirmOpen(true); }, []);
   const confirmDelete = React.useCallback(() => {
     if (!candidateBlog) return;
     setConfirmOpen(false);
-    scheduleDelete(candidateBlog);
+    softDelete(candidateBlog);
     setCandidateBlog(null);
-  }, [candidateBlog, scheduleDelete]);
+  }, [candidateBlog, softDelete]);
   const cancelDelete = React.useCallback(() => { setConfirmOpen(false); setCandidateBlog(null); }, []);
-  const undoDelete = React.useCallback(() => {
-    if (!undoBlogId) return;
-    const timer = pendingTimeoutsRef.current[undoBlogId];
-    if (timer) { clearTimeout(timer); delete pendingTimeoutsRef.current[undoBlogId]; }
-    restoreId(undoBlogId);
-    setUndoVisible(false);
-    setUndoBlogId(null);
-  }, [undoBlogId, restoreId]);
 
 
 

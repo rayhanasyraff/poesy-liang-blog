@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { getJwt } from '@/lib/session';
 
 const EXPRESS_API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 async function proxyRequest(request: NextRequest, params: Promise<{ path: string[] }>) {
   const { path } = await params;
@@ -11,6 +14,14 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
   const headers = new Headers();
   const contentType = request.headers.get('content-type');
   if (contentType) headers.set('content-type', contentType);
+
+  if (WRITE_METHODS.has(request.method)) {
+    const jwt = await getJwt();
+    if (jwt) headers.set('Authorization', `Bearer ${jwt}`);
+  } else {
+    const apiToken = process.env.API_TOKEN;
+    if (apiToken) headers.set('Authorization', `Bearer ${apiToken}`);
+  }
 
   const body = request.method === 'GET' || request.method === 'HEAD'
     ? undefined

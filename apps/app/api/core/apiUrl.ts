@@ -1,12 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-
-interface PortInfo {
-  port: number;
-  url: string;
-  timestamp: string;
-}
-
 /**
  * Get the API URL dynamically by reading the port info file
  * Falls back to environment variable or default port
@@ -28,7 +19,7 @@ export function getApiUrl(): string {
  * build-time baked-in NEXT_PUBLIC_API_URL in the browser bundle).
  */
 export function getClientApiUrl(): string {
-  if (typeof window !== 'undefined') {
+  if (globalThis.window !== undefined) {
     return '/api/proxy';
   }
 
