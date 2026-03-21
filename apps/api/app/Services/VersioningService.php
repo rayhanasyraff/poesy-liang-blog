@@ -109,9 +109,8 @@ class VersioningService
         ]);
 
         Blog::where('id', $blogId)->update([
-            'blog_status'                  => 'published',
-            'current_published_version_id' => $draftId,
-            'blog_title'                   => $data['blog_title'],
+            'blog_status'  => 'published',
+            'blog_title'   => $data['blog_title'],
             'blog_content'                 => $data['blog_content'],
             'blog_excerpt'                 => $data['blog_excerpt'] ?? '',
             'tags'                         => $data['tags'] ?? null,
