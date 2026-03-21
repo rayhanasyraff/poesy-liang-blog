@@ -1,4 +1,5 @@
 import { ArrowUpRight, Coffee } from "lucide-react";
+import { VideoPlayer } from "./video-player/VideoPlayer";
 import InstagramEmbed from "./instagram-embed";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import Image from "next/image";
@@ -261,42 +262,13 @@ export function BuyMeACoffee({ username }: BuyMeACoffeeProps) {
   );
 }
 
+// million-ignore
 function Video({ url }: { url: string }) {
   if (!url) return null;
-
-  // YouTube
-  const ytMatch = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-  );
-  if (ytMatch) {
-    return (
-      <div className="not-prose relative my-6 aspect-video w-full overflow-hidden rounded-lg">
-        <iframe
-          src={`https://www.youtube.com/embed/${ytMatch[1]}`}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="absolute inset-0 h-full w-full border-0"
-        />
-      </div>
-    );
-  }
-
-  // Direct video file
-  if (/\.(mp4|webm|ogg)(\?.*)?$/i.test(url)) {
-    return (
-      <video
-        src={url}
-        controls
-        className="not-prose my-6 w-full rounded-lg"
-      />
-    );
-  }
-
-  // Fallback — render as a link
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer">
-      {url}
-    </a>
+    <div className="not-prose my-6 relative aspect-video w-full overflow-hidden rounded-lg">
+      <VideoPlayer src={url} controls />
+    </div>
   );
 }
 

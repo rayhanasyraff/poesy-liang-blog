@@ -4,12 +4,16 @@ import React, { useRef, useCallback, useEffect, useState, useMemo } from 'react'
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FullscreenHeader } from './FullscreenHeader';
-import { BottomToolbarContents } from './BottomToolbar';
-import { BlogActionBar } from './BlogActionBar';
 import { BlogEditorMeta, type BlogPublishStatus } from './BlogEditorMeta';
+import { BlogEditorContentToolbar } from './toolbar/toolbars/content/BlogEditorContentToolbar';
+import { BlogEditorMainToolbar } from './toolbar/toolbars/main/BlogEditorMainToolbar';
+import { useEditorToolbarStore } from '@/stores/useEditorToolbarStore';
+import './style.css';
 import { apiClient } from '@/api/core/client';
 import type { ApiBlog, BlogSettings } from '@/types/blog';
 import { useBlogStore } from '@/stores/blogs/useBlogStore';
+import { CustomEditImageToolbar } from './toolbar/toolbars/content/buttons/image/CustomEditImageToolbar';
+import { VideoJsxEditor } from './toolbar/toolbars/content/buttons/video/VideoJsxEditor';
 import {
   MDXEditor,
   type MDXEditorMethods,
@@ -22,8 +26,8 @@ import {
   codeMirrorPlugin,
   tablePlugin,
   linkPlugin,
-  linkDialogPlugin,
   imagePlugin,
+  jsxPlugin,
   diffSourcePlugin,
   toolbarPlugin,
 } from '@mdxeditor/editor';
@@ -43,8 +47,17 @@ function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled';
 }
 
+// ── Video JSX descriptor ──────────────────────────────────────────────────────
+const VideoDescriptor = {
+  name: 'Video',
+  kind: 'flow' as const,
+  props: [{ name: 'url', type: 'string' as const }],
+  hasChildren: false,
+  Editor: VideoJsxEditor,
+};
+
 // ── ToolbarContentsWrapper ────────────────────────────────────────────────────
-const ToolbarContentsWrapper = () => <BottomToolbarContents />;
+const ToolbarContentsWrapper = () => <BlogEditorContentToolbar />;
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -67,14 +80,13 @@ export const BlogEditor = ({
   // ── Store ─────────────────────────────────────────────────────────────────
   const {
     blog, blogVersions, blogTitle, saveStatus, unsavedChangesAt,
-    setBlog, setBlogVersions, setBlogTitle, setSaveStatus, setUnsavedChangesAt,
+    setBlog, setBlogTitle, setSaveStatus, setUnsavedChangesAt,
     resetEditorState,
   } = useBlogStore();
 
   // ── Derived from store ────────────────────────────────────────────────────
   const currentBlogId = blog?.id ?? null;
   const sortedVersions = [...blogVersions].sort((a, b) => b.version_number - a.version_number);
-  const latestVersionId = sortedVersions[0]?.id ?? null;
   const currentVersionNumber = sortedVersions[0]?.version_number ?? null;
   const publishedVersionNumber = sortedVersions.find(v => v.status === 'committed' || v.status === 'published')?.version_number ?? null;
   const lastDraftSavedAt = (() => {
@@ -94,37 +106,32 @@ export const BlogEditor = ({
   const publishStatus: BlogPublishStatus = !blog ? 'unsaved'
     : (blog.blog_status === 'publish' || blog.blog_status === 'published') ? 'published'
     : 'draft';
-  const settings: BlogSettings = {
-    blog_visibility: blog?.blog_visibility ?? 'public',
-    comment_status: blog?.comment_status ?? 'open',
-    notification_status: blog?.notification_status ?? 'all',
-    like_visibility: blog?.like_visibility ?? 'open',
-    view_visibility: blog?.view_visibility ?? 'open',
-  };
-  const blogName = blog?.blog_name ?? null;
-  const excerpt = blog?.blog_excerpt ?? '';
-  const tags = blog?.tags ?? '';
-  const publishedDate = (() => {
-    const s = blog?.blog_date_published;
-    return s && s !== '0000-00-00 00:00:00' ? s : '';
-  })();
+
+  // ── Toolbar store ─────────────────────────────────────────────────────────
+  const isContentFocused = useEditorToolbarStore((s) => s.isContentFocused);
+  const setContentFocused = useEditorToolbarStore((s) => s.setContentFocused);
+  const setEditorBounds = useEditorToolbarStore((s) => s.setEditorBounds);
+  const editorLeft = useEditorToolbarStore((s) => s.editorLeft);
+  const editorRight = useEditorToolbarStore((s) => s.editorRight);
 
   // ── Local UI state (not shared) ───────────────────────────────────────────
-  const [isContentFocused, setIsContentFocused] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [publishModalStep, setPublishModalStep] = useState<'confirm' | 'done'>('confirm');
   const [unpublishModalOpen, setUnpublishModalOpen] = useState(false);
   const [isUnpublishing, setIsUnpublishing] = useState(false);
-  const [editorLeft, setEditorLeft] = useState(0);
-  const [editorRight, setEditorRight] = useState(0);
 
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const unsavedDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const saveDraftFnRef = useRef<(() => Promise<void>) | undefined>(undefined);
-  const blogCreationPromiseRef = useRef<Promise<number | string> | null>(null);
-  const blogIdRef = useRef<number | string | null>(null);
-  blogIdRef.current = currentBlogId;
+
+  // ── Register markdown accessor with the store ────────────────────────────
+  useEffect(() => {
+    const { registerMarkdownAccessor } = useBlogStore.getState();
+    registerMarkdownAccessor(
+      () => mdxEditorRef.current?.getMarkdown() ?? '',
+      (md) => mdxEditorRef.current?.setMarkdown(md),
+    );
+  }, []);
 
   // ── Reset store on unmount ────────────────────────────────────────────────
   useEffect(() => () => { resetEditorState(); }, [resetEditorState]);
@@ -164,13 +171,14 @@ export const BlogEditor = ({
     }),
     tablePlugin(),
     linkPlugin(),
-    linkDialogPlugin(),
     imagePlugin({
       imageUploadHandler: async (image: File) => {
         const result = await uploadFile(image);
         return result.url;
       },
+      EditImageToolbar: CustomEditImageToolbar,
     }),
+    jsxPlugin({ jsxComponentDescriptors: [VideoDescriptor] }),
     diffSourcePlugin({ viewMode: 'rich-text' }),
     toolbarPlugin({
       toolbarContents: ToolbarContentsWrapper,
@@ -178,21 +186,6 @@ export const BlogEditor = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], []); // stable — never recreated
 
-  // ── Sync isContentFocused + editor bounds to body data attributes ──────────
-  // BottomToolbarContents reads these via MutationObserver.
-  useEffect(() => {
-    document.body.dataset.editorFocused = isContentFocused ? 'true' : 'false';
-    return () => { delete document.body.dataset.editorFocused; };
-  }, [isContentFocused]);
-
-  useEffect(() => {
-    document.body.dataset.editorLeft = String(editorLeft);
-    document.body.dataset.editorRight = String(editorRight);
-    return () => {
-      delete document.body.dataset.editorLeft;
-      delete document.body.dataset.editorRight;
-    };
-  }, [editorLeft, editorRight]);
 
   // ── Focus helpers ─────────────────────────────────────────────────────────
 
@@ -210,11 +203,10 @@ export const BlogEditor = ({
     const root = rootRef.current;
     if (root) {
       const r = root.getBoundingClientRect();
-      setEditorLeft(r.left);
-      setEditorRight(window.innerWidth - r.right);
+      setEditorBounds(Math.round(r.left), Math.round(window.innerWidth - r.right));
     }
-    setIsContentFocused(true);
-  }, [isContentFocused]);
+    setContentFocused(true);
+  }, [isContentFocused, setContentFocused, setEditorBounds]);
 
   const focusTitleAtEnd = useCallback(() => {
     const title = titleRef.current;
@@ -239,13 +231,13 @@ export const BlogEditor = ({
   const suppressFocusEntryRef = useRef(false);
 
   const handleDone = useCallback(() => {
-    setIsContentFocused(false);
+    setContentFocused(false);
     suppressFocusEntryRef.current = true;
     setTimeout(() => {
       focusBody();
       setTimeout(() => { suppressFocusEntryRef.current = false; }, 50);
     }, 260);
-  }, [focusBody]);
+  }, [focusBody, setContentFocused]);
 
   // ── Title keyboard navigation ─────────────────────────────────────────────
 
@@ -382,7 +374,7 @@ export const BlogEditor = ({
   useEffect(() => {
     if (!blogTitle) return;
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    autoSaveTimerRef.current = setTimeout(() => { saveDraftFnRef.current?.(); }, 800);
+    autoSaveTimerRef.current = setTimeout(() => { useBlogStore.getState().saveDraft(); }, 800);
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blogTitle]);
@@ -400,90 +392,54 @@ export const BlogEditor = ({
 
   // ── Blog versioning helpers ───────────────────────────────────────────────
 
-  const ensureBlogExists = useCallback(async (): Promise<number | string> => {
-    if (blogIdRef.current) return blogIdRef.current;
-    if (blogCreationPromiseRef.current) return blogCreationPromiseRef.current;
+  const handleSaveDraft = useCallback(async () => {
+    await useBlogStore.getState().saveDraft();
+  }, []);
 
+  const handleFetchVersions = useCallback(async () => {
+    await useBlogStore.getState().fetchVersions();
+  }, []);
+
+  // Used only for the publish flow (store doesn't have a publish action yet).
+  const creationPromiseRef = useRef<Promise<number | string> | null>(null);
+  const ensureBlogExists = useCallback(async (): Promise<number | string> => {
+    const blogId = useBlogStore.getState().blog?.id;
+    if (blogId) return blogId;
+    if (creationPromiseRef.current) return creationPromiseRef.current;
     const promise = (async () => {
       const now = new Date().toISOString().replace('T', ' ').replace(/\..+/, '');
-      const { blog: currentBlogSnap, blogTitle: currentTitle } = useBlogStore.getState();
-      const currentSettings: BlogSettings = {
-        blog_visibility: currentBlogSnap?.blog_visibility ?? 'public',
-        comment_status: currentBlogSnap?.comment_status ?? 'open',
-        notification_status: currentBlogSnap?.notification_status ?? 'all',
-        like_visibility: currentBlogSnap?.like_visibility ?? 'open',
-        view_visibility: currentBlogSnap?.view_visibility ?? 'open',
-      };
-      try {
-        const res = await apiClient.post('/blogs', {
-          blog_name: slugify(currentTitle || 'untitled'),
-          blog_title: currentTitle || 'Untitled',
-          blog_excerpt: '',
-          blog_date: now,
-          blog_date_gmt: now,
-          blog_content: mdxEditorRef.current?.getMarkdown() ?? '',
-          blog_status: 'draft',
-          comment_status: currentSettings.comment_status,
-          notification_status: currentSettings.notification_status,
-          blog_modified: now,
-          blog_modified_gmt: now,
-          tags: '',
-          blog_visibility: currentSettings.blog_visibility,
-          like_count: 0,
-        });
-        const id = res.data?.data?.id;
-        if (!id) throw new Error('Failed to create blog');
-        // Fetch full blog data and set in store
-        const blogRes = await apiClient.get(`/blogs/${id}`);
-        const blogData = blogRes.data?.data;
-        setBlog(Array.isArray(blogData) ? blogData[0] : blogData);
-        onBlogCreated?.(id);
-        return id;
-      } catch (err: any) {
-        console.error('ensureBlogExists failed', err);
-        const msg = err?.response?.data?.message || err?.message || 'Network error';
-        throw new Error(msg);
-      }
-    })();
-
-    blogCreationPromiseRef.current = promise;
-    promise.finally(() => { blogCreationPromiseRef.current = null; });
-    return promise;
-  }, [setBlog, onBlogCreated]);
-
-  const handleSaveDraft = useCallback(async () => {
-    const { blogTitle: currentTitle, unsavedChangesAt: currentUnsaved, blog: currentBlog, blogVersions: currentVersions } = useBlogStore.getState();
-    const content = mdxEditorRef.current?.getMarkdown() ?? '';
-    if (!currentTitle.trim() && !content.trim()) return;
-    if (!currentUnsaved) return;
-    setSaveStatus('saving');
-    try {
-      const id = await ensureBlogExists();
-      const sorted = [...currentVersions].sort((a, b) => b.version_number - a.version_number);
-      const currentSettings: BlogSettings = {
-        blog_visibility: currentBlog?.blog_visibility ?? 'public',
-        comment_status: currentBlog?.comment_status ?? 'open',
-        notification_status: currentBlog?.notification_status ?? 'all',
-        like_visibility: currentBlog?.like_visibility ?? 'open',
-        view_visibility: currentBlog?.view_visibility ?? 'open',
-      };
-      await apiClient.post(`/blogs/${id}/versions/draft`, {
+      const { blog: snap, blogTitle: currentTitle } = useBlogStore.getState();
+      const res = await apiClient.post('/blogs', {
+        blog_name: slugify(currentTitle || 'untitled'),
         blog_title: currentTitle || 'Untitled',
-        blog_content: content,
-        parent_version_id: sorted[0]?.id ?? null,
-        tags: currentBlog?.tags ?? '',
-        ...currentSettings,
+        blog_excerpt: '',
+        blog_date: now, blog_date_gmt: now,
+        blog_content: useBlogStore.getState().getEditorContent(),
+        blog_status: 'draft',
+        comment_status: snap?.comment_status ?? 'open',
+        notification_status: snap?.notification_status ?? 'all',
+        blog_modified: now, blog_modified_gmt: now,
+        tags: '', blog_visibility: snap?.blog_visibility ?? 'public', like_count: 0,
       });
-      await handleFetchVersions();
-      setUnsavedChangesAt(null);
-      setSaveStatus('saved');
-    } catch (err: any) {
-      console.error('Save draft failed', err);
-      const msg = err?.response?.data?.message || err?.message || 'Network error';
-      try { alert('Failed to save draft: ' + msg); } catch {}
-      setSaveStatus('error');
-    }
-  }, [ensureBlogExists, setSaveStatus, setUnsavedChangesAt]);
+      const id = res.data?.data?.id;
+      if (!id) throw new Error('Failed to create blog');
+      const blogRes = await apiClient.get(`/blogs/${id}`);
+      const blogData = blogRes.data?.data;
+      setBlog(Array.isArray(blogData) ? blogData[0] : blogData);
+      return id as number | string;
+    })();
+    creationPromiseRef.current = promise;
+    promise.finally(() => { creationPromiseRef.current = null; });
+    return promise;
+  }, [setBlog]);
+
+  // Wire onBlogCreated: call it once when the blog gets an ID for the first time.
+  const onBlogCreatedCalledRef = useRef(false);
+  useEffect(() => {
+    if (!currentBlogId || onBlogCreatedCalledRef.current) return;
+    onBlogCreatedCalledRef.current = true;
+    onBlogCreated?.(currentBlogId);
+  }, [currentBlogId, onBlogCreated]);
 
   const handlePublishConfirm = useCallback(async () => {
     const { blogTitle: currentTitle, blog: currentBlog } = useBlogStore.getState();
@@ -500,7 +456,7 @@ export const BlogEditor = ({
       };
       await apiClient.post(`/blogs/${id}/versions/publish`, {
         blog_title: currentTitle || 'Untitled',
-        blog_content: mdxEditorRef.current?.getMarkdown() ?? '',
+        blog_content: useBlogStore.getState().getEditorContent(),
         tags: currentBlog?.tags ?? '',
         ...currentSettings,
       });
@@ -510,76 +466,25 @@ export const BlogEditor = ({
       setPublishModalStep('done');
     } catch (err: any) {
       console.error('Publish failed', err);
-      const msg = err?.response?.data?.message || err?.message || 'Network error';
+      if (err?.response?.status === 401) {
+        try { alert('Your session has expired. Please log in again.'); } catch {}
+        window.location.href = '/admin/login';
+        return;
+      }
+      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Network error';
       try { alert('Publish failed: ' + msg); } catch {}
       setSaveStatus('error');
       setPublishModalOpen(false);
     } finally {
       setIsPublishing(false);
     }
-  }, [ensureBlogExists, setSaveStatus, setUnsavedChangesAt]);
+  }, [ensureBlogExists, handleFetchVersions, setSaveStatus, setUnsavedChangesAt]);
 
   const handlePublish = useCallback(() => {
     if (!blogTitle.trim()) return;
     setPublishModalStep('confirm');
     setPublishModalOpen(true);
   }, [blogTitle]);
-
-  const handleSettingChange = useCallback(async (key: keyof BlogSettings, value: string) => {
-    const snap = useBlogStore.getState().blog;
-    if (snap) setBlog({ ...snap, [key]: value } as ApiBlog);
-    if (!currentBlogId) return;
-    try {
-      await apiClient.patch(`/blogs/${currentBlogId}/settings`, { [key]: value });
-    } catch {
-      if (snap) setBlog(snap);
-    }
-  }, [currentBlogId, setBlog]);
-
-  const handleFetchVersions = useCallback(async () => {
-    if (!currentBlogId) return;
-    try {
-      const [blogRes, versRes] = await Promise.all([
-        apiClient.get(`/blogs/${currentBlogId}`),
-        apiClient.get(`/blogs/${currentBlogId}/versions`),
-      ]);
-      const blogData: ApiBlog | null = blogRes?.data?.data ?? null;
-      const versData = versRes?.data?.data ?? [];
-
-      if (blogData) setBlog(blogData);
-
-      const versions: typeof blogVersions = Array.isArray(versData) ? versData : [];
-      setBlogVersions(versions);
-
-      if (versions.length > 0) {
-        const sorted = [...versions].sort((a, b) => (b.version_number ?? 0) - (a.version_number ?? 0));
-        const latest = sorted[0];
-        setBlogTitle(latest.blog_title ?? blogData?.blog_title ?? '');
-        mdxEditorRef.current?.setMarkdown(latest.blog_content ?? '');
-      } else if (blogData) {
-        const title = blogData.blog_title ?? '';
-        setBlogTitle(title);
-        mdxEditorRef.current?.setMarkdown(blogData.blog_content ?? '');
-        try {
-          const draftRes = await apiClient.post(`/blogs/${currentBlogId}/versions/draft`, {
-            blog_title: title || 'Untitled',
-            blog_content: blogData.blog_content ?? '',
-            blog_visibility: blogData.blog_visibility ?? 'public',
-            comment_status: blogData.comment_status ?? 'open',
-            like_visibility: blogData.like_visibility ?? 'open',
-            view_visibility: blogData.view_visibility ?? 'open',
-          });
-          const draftData = draftRes.data?.data;
-          if (draftData) setBlogVersions([draftData]);
-        } catch (err) {
-          console.warn('[BlogEditor] Failed to auto-create v1 draft', err);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch versions/blog data', err);
-      setBlogVersions([]);
-    }
-  }, [currentBlogId, setBlog, setBlogVersions, setBlogTitle]);
 
   useEffect(() => {
     const resolveBlogId = async () => {
@@ -627,14 +532,6 @@ export const BlogEditor = ({
     handleFetchVersions();
   }, [currentBlogId, handleFetchVersions]);
 
-  const handleVersionRevert = useCallback(async (versionId: number) => {
-    if (!currentBlogId) return;
-    try {
-      await apiClient.post(`/blogs/${currentBlogId}/versions/${versionId}/revert`, {});
-      await handleFetchVersions();
-    } catch {}
-  }, [currentBlogId, handleFetchVersions]);
-
   const handleUnpublish = useCallback(() => {
     setUnpublishModalOpen(true);
   }, []);
@@ -652,65 +549,10 @@ export const BlogEditor = ({
     }
   }, [currentBlogId, handleFetchVersions]);
 
-  const handleCheckSlugAvailable = useCallback(async (slug: string): Promise<boolean> => {
-    try {
-      const base = '/api/proxy';
-      const params = new URLSearchParams({ slug });
-      if (currentBlogId) params.set('exclude_id', String(currentBlogId));
-      const res = await fetch(`${base}/blogs/check-slug?${params}`);
-      const json = await res.json();
-      return json.available ?? true;
-    } catch {
-      return true;
-    }
-  }, [currentBlogId]);
-
-  const handleRenameBlogName = useCallback(async (newSlug: string) => {
-    if (!currentBlogId) return;
-    await apiClient.patch(`/blogs/${currentBlogId}/settings`, { blog_name: newSlug });
-    const snap = useBlogStore.getState().blog;
-    if (snap) setBlog({ ...snap, blog_name: newSlug });
-  }, [currentBlogId, setBlog]);
-
-  const handleNewDraft = useCallback(async (source: 'empty' | 'current' | number) => {
-    if (!currentBlogId) return;
-    if (typeof source === 'number') {
-      await apiClient.post(`/blogs/${currentBlogId}/versions/${source}/revert`, {});
-    } else if (source === 'empty') {
-      await apiClient.post(`/blogs/${currentBlogId}/versions/draft`, {
-        blog_title: '',
-        blog_content: '',
-        tags: '',
-      });
-    } else {
-      const { blogTitle: t, blog: b } = useBlogStore.getState();
-      const currentSettings: BlogSettings = {
-        blog_visibility: b?.blog_visibility ?? 'public',
-        comment_status: b?.comment_status ?? 'open',
-        notification_status: b?.notification_status ?? 'all',
-        like_visibility: b?.like_visibility ?? 'open',
-        view_visibility: b?.view_visibility ?? 'open',
-      };
-      await apiClient.post(`/blogs/${currentBlogId}/versions/draft`, {
-        blog_title: t || 'Untitled',
-        blog_content: mdxEditorRef.current?.getMarkdown() ?? '',
-        tags: b?.tags ?? '',
-        ...currentSettings,
-      });
-    }
-    await handleFetchVersions();
-  }, [currentBlogId, handleFetchVersions]);
-
-  const handleDeleteBlog = useCallback(async () => {
-    if (!currentBlogId) return;
-    if (!window.confirm('Delete this blog and all its versions? This cannot be undone.')) return;
-    try {
-      await apiClient.delete(`/blogs/${currentBlogId}`);
-      setBlog(null);
-      setBlogVersions([]);
-      setIsContentFocused(false);
-    } catch {}
-  }, [currentBlogId, setBlog, setBlogVersions]);
+  // When blog is deleted (blog becomes null), exit content focus mode
+  useEffect(() => {
+    if (!blog) setContentFocused(false);
+  }, [blog, setContentFocused]);
 
   const handleBackClick = useCallback(async () => {
     if (!unsavedChangesAt) {
@@ -730,40 +572,6 @@ export const BlogEditor = ({
     window.location.href = '/admin';
   }, [handleSaveDraft, unsavedChangesAt]);
 
-  // Keep ref in sync
-  saveDraftFnRef.current = handleSaveDraft;
-
-  const previewSlug = !currentBlogId ? (slugify(blogTitle || '') || null) : null;
-
-  const autoExcerpt = (() => {
-    const md = mdxEditorRef.current?.getMarkdown() ?? '';
-    return md ? md.replace(/[#*_`>\[\]!]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 70) : '';
-  })();
-
-  const handleSaveExcerpt = useCallback(async (newExcerpt: string) => {
-    const snap = useBlogStore.getState().blog;
-    if (snap) setBlog({ ...snap, blog_excerpt: newExcerpt });
-    if (!currentBlogId) return;
-    await apiClient.patch(`/blogs/${currentBlogId}/settings`, { blog_excerpt: newExcerpt });
-  }, [currentBlogId, setBlog]);
-
-  const handleSaveTags = useCallback(async (newTags: string) => {
-    const snap = useBlogStore.getState().blog;
-    if (snap) setBlog({ ...snap, tags: newTags });
-    if (!currentBlogId) return;
-    await apiClient.patch(`/blogs/${currentBlogId}/settings`, { tags: newTags });
-  }, [currentBlogId, setBlog]);
-
-  const handleSavePublishedDate = useCallback(async (dateStr: string) => {
-    const snap = useBlogStore.getState().blog;
-    if (snap) setBlog({ ...snap, blog_date_published: dateStr });
-    if (!currentBlogId) return;
-    const iso = dateStr ? new Date(dateStr).toISOString().replace('T', ' ').replace(/\..+/, '') : '';
-    await apiClient.patch(`/blogs/${currentBlogId}/settings`, {
-      blog_date_published: iso,
-      blog_date_published_gmt: iso,
-    });
-  }, [currentBlogId, setBlog]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -789,215 +597,7 @@ export const BlogEditor = ({
         position: 'relative',
       }}
     >
-      <style>{`
-        .blog-editor-title {
-          position: relative;
-          font-size: 2rem;
-          font-weight: 700;
-          line-height: 1.25;
-          outline: none;
-          width: 100%;
-          min-height: 2.5rem;
-          word-break: break-word;
-          overflow-wrap: anywhere;
-          white-space: pre-wrap;
-          cursor: text;
-        }
-        .blog-editor-title::before {
-          content: attr(data-placeholder);
-          color: rgba(156, 163, 175, 0.55);
-          pointer-events: none;
-          position: absolute;
-          top: 0;
-          left: 32px;
-        }
-        .blog-editor-title[data-empty="false"]::before { display: none; }
-        .blog-editor-title { padding-left: 24px; color: inherit; }
 
-        /* MDX editor layout */
-        .blog-mdx-editor {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          min-height: 0;
-          overflow: hidden;
-        }
-        /* Collapse toolbar container. display:contents removes its own box so the
-           position:fixed motion.div inside is not trapped inside sticky/overflow context. */
-        .blog-mdx-editor > div:first-child {
-          display: contents !important;
-        }
-        /* Also neutralise the inner _toolbarRoot_ so it doesn't add background/padding */
-        .blog-mdx-editor > div:first-child > [class*="_toolbarRoot_"] {
-          display: contents !important;
-        }
-        /* Content area: explicit low z-index so toolbar/dropdowns always paint above it */
-        .blog-mdx-editor > div:last-child {
-          flex: 1;
-          min-height: 0;
-          overflow: auto;
-          position: relative;
-          z-index: 0;
-        }
-        /* Use site foreground color so text is solid, not the prose-neutral muted tint */
-        .blog-editor-content {
-          color: hsl(var(--foreground)) !important;
-          --tw-prose-body: hsl(var(--foreground));
-          --tw-prose-invert-body: hsl(var(--foreground));
-        }
-
-        .editor-sidebar-panel { display: flex; flex-direction: column; }
-        @media (max-width: 768px) { .editor-sidebar-panel { display: none !important; } }
-        .editor-action-bar-wrap { display: block; }
-        @media (min-width: 769px) { .editor-action-bar-wrap { display: none !important; } }
-
-        /* ── Content editor toolbar: match main toolbar style ── */
-
-        /* Reset group spacing */
-        .editor-content-toolbar [class*="toolbarGroupOfGroups"],
-        .editor-content-toolbar [class*="toolbarToggleSingleGroup"] {
-          display: flex;
-          margin: 0 !important;
-        }
-
-        /* Button base — 32×32 pill, muted color */
-        .editor-content-toolbar [class*="toolbarToggleItem"],
-        .editor-content-toolbar [class*="toolbarButton"] {
-          height: 2rem !important;
-          width: 2rem !important;
-          min-width: 2rem !important;
-          border-radius: 9999px !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          padding: 0 !important;
-          color: hsl(var(--muted-foreground)) !important;
-          background-color: transparent !important;
-          transition: color 150ms ease, background-color 150ms ease !important;
-        }
-
-        /* Inner span inside toggle buttons */
-        .editor-content-toolbar [class*="toolbarToggleItem"] > span {
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          padding: 0 !important;
-        }
-
-        /* Hover */
-        .editor-content-toolbar [class*="toolbarToggleItem"]:hover,
-        .editor-content-toolbar [class*="toolbarButton"]:hover {
-          background-color: hsl(var(--accent)) !important;
-          color: hsl(var(--foreground)) !important;
-        }
-
-        /* Active / selected */
-        .editor-content-toolbar [class*="toolbarToggleItem"][data-state="on"],
-        .editor-content-toolbar [class*="toolbarButton"][data-state="on"] {
-          background-color: hsl(var(--accent)) !important;
-          color: hsl(var(--foreground)) !important;
-        }
-
-        /* Keep border-radius circular even when mdxeditor applies grouped radius */
-        .editor-content-toolbar [class*="toolbarToggleItem"][style*="border-radius"],
-        .editor-content-toolbar [class*="toolbarToggleSingleGroup"] [class*="toolbarToggleItem"]:first-child,
-        .editor-content-toolbar [class*="toolbarToggleSingleGroup"] [class*="toolbarToggleItem"]:last-child,
-        .editor-content-toolbar [class*="toolbarToggleSingleGroup"] [class*="toolbarToggleItem"]:only-child {
-          border-radius: 9999px !important;
-        }
-
-        /* SVG icons inherit button color */
-        .editor-content-toolbar svg {
-          color: inherit !important;
-        }
-
-        /* Separator — matches main toolbar divider */
-        .editor-content-toolbar div[role="separator"] {
-          width: 1px !important;
-          height: 1.25rem !important;
-          background: hsl(var(--border) / 0.6) !important;
-          border: none !important;
-          margin: 0 0.125rem !important;
-          flex-shrink: 0 !important;
-        }
-
-        /* BlockTypeSelect trigger */
-        .editor-content-toolbar [class*="toolbarNodeKindSelectTrigger"] {
-          display: flex !important;
-          align-items: center !important;
-          gap: 0.25rem !important;
-          height: 2rem !important;
-          padding: 0 0.5rem !important;
-          border-radius: 9999px !important;
-          font-size: 0.75rem !important;
-          color: hsl(var(--muted-foreground)) !important;
-          background-color: transparent !important;
-          transition: color 150ms ease, background-color 150ms ease !important;
-          white-space: nowrap !important;
-        }
-        .editor-content-toolbar [class*="toolbarNodeKindSelectTrigger"]:hover {
-          background-color: hsl(var(--accent)) !important;
-          color: hsl(var(--foreground)) !important;
-        }
-
-        /* Mode switch (rich/source/diff) */
-        .editor-content-toolbar [class*="toolbarModeSwitch"] {
-          border: 1px solid hsl(var(--border) / 0.5) !important;
-          border-radius: 9999px !important;
-          overflow: hidden !important;
-          font-size: 0.7rem !important;
-        }
-        .editor-content-toolbar [class*="toolbarModeSwitch"] [class*="toolbarToggleItem"] {
-          width: auto !important;
-          padding: 0 0.5rem !important;
-          border-radius: 0 !important;
-        }
-        .editor-content-toolbar [class*="toolbarModeSwitch"] [class*="toolbarToggleItem"][data-state="on"] {
-          background-color: hsl(var(--accent)) !important;
-          color: hsl(var(--foreground)) !important;
-        }
-
-        /* diffSourceToggleWrapper: remove sticky/auto-margin so it flows inline */
-        .editor-content-toolbar [class*="diffSourceToggleWrapper"] {
-          margin-left: 0 !important;
-          position: static !important;
-          display: flex !important;
-          flex-direction: row !important;
-          align-items: center !important;
-        }
-        /* diffSourceToggle group: remove background, use transparent */
-        .editor-content-toolbar [class*="diffSourceToggle"]:not([class*="diffSourceToggleWrapper"]) {
-          background-color: transparent !important;
-          border-radius: 0 !important;
-          display: flex !important;
-          flex-direction: row !important;
-          align-items: center !important;
-        }
-        /* Content editor toolbar: invisible scrollbar, minimal height */
-        .editor-content-toolbar { scrollbar-width: none; }
-        .editor-content-toolbar::-webkit-scrollbar { height: 1px; background: transparent; }
-        .editor-content-toolbar::-webkit-scrollbar-track { background: transparent; }
-        .editor-content-toolbar::-webkit-scrollbar-thumb { background: transparent; }
-        /* MDXEditor popup container — appended directly to body (position:relative; z-index:2
-           by default). Setting z-index:100000 places it above blog-editor-root (z-index:40)
-           in the root stacking context, so image/link dialogs paint over the toolbar. */
-        [class*="_popupContainer_"] { z-index: 100000 !important; }
-        /* MDXEditor dropdowns / tooltips / dialogs must clear the toolbar (z-index 99999).
-           Let Radix handle placement — it has built-in collision detection and will open
-           above the trigger automatically when there is no room below. */
-        [class*="_toolbarNodeKindSelectContainer_"],
-        [class*="_selectContainer_"],
-        [class*="_toolbarCodeBlockLanguageSelectContent_"],
-        [class*="_toolbarButtonDropdownContainer_"] {
-          z-index: 100001 !important;
-          filter: none !important;
-        }
-        /* Tooltips, link/image dialogs */
-        [class*="_tooltipContent_"],
-        [class*="_linkDialogPopoverContent_"],
-        [class*="_dialogContent_"] { z-index: 100001 !important; }
-        [data-radix-popper-content-wrapper] { z-index: 100001 !important; }
-      `}</style>
 
       {/* ── Main-page header ── */}
       {!isContentFocused && (
@@ -1109,7 +709,7 @@ export const BlogEditor = ({
               onChange={() => {
                 // Schedule auto-save directly — avoids serializing markdown on every keystroke.
                 if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-                autoSaveTimerRef.current = setTimeout(() => { saveDraftFnRef.current?.(); }, 800);
+                autoSaveTimerRef.current = setTimeout(() => { useBlogStore.getState().saveDraft(); }, 800);
                 // Debounce the UI "unsaved" indicator — at most once per 300ms.
                 if (unsavedDebounceRef.current) clearTimeout(unsavedDebounceRef.current);
                 unsavedDebounceRef.current = setTimeout(() => {
@@ -1124,33 +724,8 @@ export const BlogEditor = ({
 
       </div>{/* end content area */}
 
-      {/* ── Blog action bar ── */}
-      <AnimatePresence initial={false}>
-        {!isContentFocused && (
-          <BlogActionBar
-            key="blog-action-bar"
-            settings={settings}
-            onSettingChange={handleSettingChange}
-            versions={blogVersions}
-            onFetchVersions={handleFetchVersions}
-            onVersionRevert={handleVersionRevert}
-            onDeleteBlog={currentBlogId ? handleDeleteBlog : undefined}
-            currentVersionId={latestVersionId as number | null}
-            onNewDraft={currentBlogId ? handleNewDraft : undefined}
-            blogName={blogName}
-            previewSlug={previewSlug}
-            onCheckSlugAvailable={handleCheckSlugAvailable}
-            onRenameBlogName={handleRenameBlogName}
-            excerpt={excerpt}
-            autoExcerpt={autoExcerpt}
-            onSaveExcerpt={handleSaveExcerpt}
-            tags={tags}
-            onSaveTags={handleSaveTags}
-            publishedDate={publishedDate}
-            onSavePublishedDate={handleSavePublishedDate}
-          />
-        )}
-      </AnimatePresence>
+      {/* ── Main toolbar (zero props — reads from store) ── */}
+      <BlogEditorMainToolbar />
 
       {/* ── Publish confirmation modal ── */}
       {publishModalOpen && typeof document !== 'undefined' && createPortal(

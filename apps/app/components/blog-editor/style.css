@@ -1,0 +1,106 @@
+/*
+ * BlogEditor layout styles
+ *
+ * Paired with BlogEditor.tsx.
+ * Contains styles that Tailwind cannot express (pseudo-elements, ::before content,
+ * MDX editor flexbox overrides) and layout rules for the blog editor shell.
+ */
+
+/* ── Blog editor title ───────────────────────────────────────────────────── */
+
+.blog-editor-title {
+  position: relative;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.25;
+  outline: none;
+  width: 100%;
+  min-height: 2.5rem;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  cursor: text;
+  padding-left: 24px;
+  color: inherit;
+}
+
+.blog-editor-title::before {
+  content: attr(data-placeholder);
+  color: rgba(156, 163, 175, 0.55);
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 32px;
+}
+
+.blog-editor-title[data-empty="false"]::before {
+  display: none;
+}
+
+/* ── MDX editor layout ───────────────────────────────────────────────────── */
+
+.blog-mdx-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Links in editor content ─────────────────────────────────────────────── */
+
+.blog-editor-content a[href] {
+  cursor: pointer;
+}
+
+/* ── Blog editor content text color ─────────────────────────────────────── */
+
+/* Use site foreground color so text is solid, not the prose-neutral muted tint */
+.blog-editor-content {
+  color: hsl(var(--foreground)) !important;
+  --tw-prose-body: hsl(var(--foreground));
+  --tw-prose-invert-body: hsl(var(--foreground));
+}
+
+/* ── Editor-specific prose overrides ─────────────────────────────────────── */
+
+/*
+ * globals.css sets `.prose h2 { border-b pb-2 }` for the rendered blog view.
+ * Remove the divider line in the editor — headings should look clean while editing.
+ */
+.blog-editor-content h2 {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+}
+
+/*
+ * globals.css sets `.prose strong { font-weight: 500 }` (medium) for the rendered view.
+ * That rule has higher specificity (0,1,1) than MDXEditor's bold class (0,1,0), so it
+ * overrides bold text to barely-visible medium weight. Restore full bold in the editor.
+ */
+.blog-editor-content strong {
+  font-weight: 700 !important;
+}
+
+/* ── Responsive layout helpers ───────────────────────────────────────────── */
+
+.editor-sidebar-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .editor-sidebar-panel {
+    display: none !important;
+  }
+}
+
+.editor-action-bar-wrap {
+  display: block;
+}
+
+@media (min-width: 769px) {
+  .editor-action-bar-wrap {
+    display: none !important;
+  }
+}

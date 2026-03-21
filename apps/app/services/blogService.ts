@@ -1,9 +1,13 @@
+import { cache } from 'react';
 import { getBlogs, getBlogById, getBlogVersions } from '@/api/resources/blogApi';
 import { convertApiBlogToBlog } from '@/lib/blog-utils';
 import type { ApiBlog, Blog } from '@/types/blog';
 
-// Cache for all API blogs
+// Module-level cache + in-flight dedup for fetchAllBlogs.
+// The in-flight promise prevents concurrent requests from each firing
+// their own paging loop before the first one resolves.
 let allApiBlogsCache: ApiBlog[] | null = null;
+let allApiBlogsInflight: Promise<ApiBlog[]> | null = null;
 
 export const PAGE_SIZE = 20;
 
@@ -69,42 +73,36 @@ export async function fetchPublicPage(offset: number): Promise<{ rows: any[]; ne
   return { rows, nextOffset };
 }
 
-// Fetch ALL blogs from API with caching
-export async function fetchAllBlogs(): Promise<ApiBlog[]> {
-  if (allApiBlogsCache) {
-    return allApiBlogsCache;
-  }
+// Fetch ALL blogs from API with caching + in-flight dedup
+export function fetchAllBlogs(): Promise<ApiBlog[]> {
+  if (allApiBlogsCache) return Promise.resolve(allApiBlogsCache);
+  if (allApiBlogsInflight) return allApiBlogsInflight;
 
-  try {
-    const allBlogs: ApiBlog[] = [];
-    let offset = 0;
-    const limit = 50;
-    let hasMore = true;
+  allApiBlogsInflight = (async () => {
+    try {
+      const allBlogs: ApiBlog[] = [];
+      let offset = 0;
+      const limit = 50;
 
-    // Keep fetching until we get all blogs
-    while (hasMore) {
-      const blogs = await getBlogs(limit, offset);
-
-      if (blogs.length === 0) {
-        break;
-      }
-
-      allBlogs.push(...blogs);
-
-      // If we got fewer blogs than requested, we've reached the end
-      if (blogs.length < limit) {
-        hasMore = false;
-      } else {
+      while (true) {
+        const blogs = await getBlogs(limit, offset);
+        if (!blogs.length) break;
+        allBlogs.push(...blogs);
+        if (blogs.length < limit) break;
         offset += limit;
       }
-    }
 
-    allApiBlogsCache = allBlogs;
-    return allBlogs;
-  } catch (error) {
-    console.error('Error fetching all blogs from API:', error);
-    return [];
-  }
+      allApiBlogsCache = allBlogs;
+      return allBlogs;
+    } catch (error) {
+      console.error('Error fetching all blogs from API:', error);
+      return [];
+    } finally {
+      allApiBlogsInflight = null;
+    }
+  })();
+
+  return allApiBlogsInflight;
 }
 
 export async function fetchBlogFromApiById(id: number) {
@@ -182,8 +180,10 @@ async function overlayCommittedVersion(apiBlog: ApiBlog): Promise<Blog> {
   return convertApiBlogToBlog(apiBlog);
 }
 
-// Function to get a specific published blog by slug (user-facing)
-export async function getBlogBySlug(slug: string): Promise<Blog | null> {
+// Function to get a specific published blog by slug (user-facing).
+// Wrapped with React.cache() so concurrent calls within the same render pass
+// (e.g. generateMetadata + the page component) share a single fetch.
+export const getBlogBySlug = cache(async (slug: string): Promise<Blog | null> => {
   try {
     // Check if slug starts with "blog-" and extract ID
     if (slug.startsWith('blog-')) {
@@ -202,39 +202,26 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
     const encodedSlug = encodeURIComponent(slug).toLowerCase();
     const decodedSlug = decodeURIComponent(slug).toLowerCase();
 
-    // Try fetching all API blogs to find by blog_name (slug) — published only
-    try {
-      const apiBlogs = await fetchAllBlogs();
-      const matchingBlog = apiBlogs.find(blog => {
-        if (!(blog.blog_status === 'publish' || blog.blog_status === 'published')) return false;
-        const blogSlugRaw = (blog.blog_name || '').toString();
-        const blogSlug = blogSlugRaw.toLowerCase();
-        return blogSlug === slug.toLowerCase() ||
-               blogSlug === encodedSlug ||
-               blogSlug === decodedSlug ||
-               decodeURIComponent(blogSlug) === decodedSlug;
-      });
-      if (matchingBlog) {
-        return overlayCommittedVersion(matchingBlog);
-      }
-    } catch (apiError) {
-      console.warn('Could not search API blogs by slug:', apiError);
-    }
-
-    // Fall back to searching all published blogs
-    const allBlogs = await fetchBlogsCompatible();
-    return allBlogs.find(blog => {
-      const blogSlug = blog.slug.toLowerCase();
+    // Fetch all API blogs and find by blog_name (slug) — published only
+    const apiBlogs = await fetchAllBlogs();
+    const matchingBlog = apiBlogs.find(blog => {
+      if (!(blog.blog_status === 'publish' || blog.blog_status === 'published')) return false;
+      const blogSlug = (blog.blog_name || '').toString().toLowerCase();
       return blogSlug === slug.toLowerCase() ||
              blogSlug === encodedSlug ||
              blogSlug === decodedSlug ||
              decodeURIComponent(blogSlug) === decodedSlug;
-    }) || null;
+    });
+    if (matchingBlog) {
+      return overlayCommittedVersion(matchingBlog);
+    }
+
+    return null;
   } catch (error) {
     console.error('Error fetching blog by slug:', error);
     return null;
   }
-}
+});
 
 // Function to get a blog for admin preview — shows latest saved version (draft or published)
 export async function getAdminBlogBySlug(slug: string): Promise<Blog | null> {

@@ -15,11 +15,17 @@ export async function loginAction(
     return { error: 'API URL is not configured on the server.' };
   }
 
+  const apiToken = process.env.API_TOKEN;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiToken) {
+    headers['Authorization'] = `Bearer ${apiToken}`;
+  }
+
   let res: Response;
   try {
     res = await fetch(`${apiUrl}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ email, password }),
     });
   } catch {
@@ -30,6 +36,13 @@ export async function loginAction(
   try { body = await res.json(); } catch {}
 
   if (!res.ok) {
+    console.error('Login failed:', {
+      status: res.status,
+      statusText: res.statusText,
+      body,
+      email,
+      apiUrl: `${apiUrl}/auth/login`
+    });
     return { error: body?.error ?? 'Invalid email or password.' };
   }
 
