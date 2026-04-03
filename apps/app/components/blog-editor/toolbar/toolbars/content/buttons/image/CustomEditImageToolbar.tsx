@@ -121,9 +121,9 @@ export function CustomEditImageToolbar({
           <RadixDialog.Overlay className="fixed inset-0 z-[100000] bg-black/30 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <RadixDialog.Content
             className="fixed left-1/2 top-1/2 z-[100001] w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-background p-5 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
-            onOpenAutoFocus={(e) => {
-              e.preventDefault();
-              setTimeout(() => urlInputRef.current?.focus(), 0);
+            onOpenAutoFocus={() => {
+              // Let Radix initialize the focus scope normally so the focus trap
+              // works for all elements. The URL input gets focus via autoFocus.
             }}
             onCloseAutoFocus={(e) => e.preventDefault()}
           >
@@ -157,6 +157,8 @@ export function CustomEditImageToolbar({
                 <input
                   ref={urlInputRef}
                   type="url"
+                  // eslint-disable-next-line jsx-a11y/no-autofocus
+                  autoFocus
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   onKeyDown={(e) => {
@@ -172,6 +174,8 @@ export function CustomEditImageToolbar({
                 <label className="block text-xs text-muted-foreground mb-1.5">Replace with file</label>
                 <button
                   type="button"
+                  // eslint-disable-next-line jsx-a11y/no-autofocus
+                  autoFocus
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full rounded-lg border border-dashed border-border bg-accent/30 hover:bg-accent/50 transition-colors px-3 py-4 text-sm text-muted-foreground flex flex-col items-center gap-1.5"
                 >

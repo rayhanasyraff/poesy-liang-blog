@@ -64,7 +64,14 @@ export function BlogEditorContentToolbar() {
       zIndex={99999}
       offsetLeft={editorLeft}
       offsetRight={editorRight}
-      onMouseDown={(e) => e.preventDefault()}
+      onMouseDown={(e) => {
+          // Prevent default only for clicks originating inside the real toolbar DOM.
+          // Portal events (e.g. dialogs) bubble through the React tree but their
+          // actual DOM target is outside this element — don't block their focus.
+          if ((e.currentTarget as HTMLElement).contains(e.target as Node)) {
+            e.preventDefault();
+          }
+        }}
       className="pt-2 pb-3"
     >
       {/* Scrollable pill */}

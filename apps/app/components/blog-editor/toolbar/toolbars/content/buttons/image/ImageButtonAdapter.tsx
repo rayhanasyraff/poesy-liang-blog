@@ -15,6 +15,7 @@ export function ImageButtonAdapter() {
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
+  const descriptionId = React.useId();
 
   const reset = useCallback(() => {
     setUrl('');
@@ -28,6 +29,17 @@ export function ImageButtonAdapter() {
     setOpen(next);
     if (!next) reset();
   }, [reset]);
+
+  // Blur the editor's contentEditable before opening so Radix can apply
+  // aria-hidden cleanly. Without this the browser blocks aria-hidden because
+  // a focused descendant is inside the hidden ancestor, breaking the focus trap.
+  const openDialog = useCallback(() => {
+    const active = document.activeElement as HTMLElement | null;
+    if (active) active.blur();
+    // Double-rAF ensures the blur event has fully propagated before Radix
+    // sets aria-hidden on non-dialog elements.
+    requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true)));
+  }, []);
 
   const handleInsert = useCallback(() => {
     if (tab === 'url') {
@@ -47,25 +59,43 @@ export function ImageButtonAdapter() {
 
   return (
     <RadixDialog.Root open={open} onOpenChange={handleOpenChange}>
-      <RadixDialog.Trigger asChild>
-        <span onMouseDown={(e) => e.preventDefault()}>
-          <ImageButton onClick={() => setOpen(true)} />
-        </span>
-      </RadixDialog.Trigger>
+      {/*
+       * Do NOT use RadixDialog.Trigger here. The Trigger calls onOpenChange(true)
+       * synchronously on the same click tick, which makes Radix set aria-hidden on
+       * <main> before the editor blur can take effect — permanently breaking the focus
+       * trap. Instead we open manually via openDialog (double-rAF), which guarantees
+       * the blur fully resolves before the dialog opens.
+       */}
+      <span
+        onMouseDown={() => {
+          // BlogEditorToolbarButton calls e.preventDefault() which keeps the editor
+          // focused. We counter that here with an explicit blur() before the dialog
+          // opens, so Radix can safely apply aria-hidden to non-dialog elements.
+          const active = document.activeElement as HTMLElement | null;
+          if (active) active.blur();
+        }}
+      >
+        <ImageButton onClick={openDialog} />
+      </span>
 
       <RadixDialog.Portal>
         <RadixDialog.Overlay className="fixed inset-0 z-[100000] bg-black/30 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <RadixDialog.Content
           className="fixed left-1/2 top-1/2 z-[100001] w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-background p-5 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
-          onOpenAutoFocus={(e) => {
-            e.preventDefault();
-            setTimeout(() => urlInputRef.current?.focus(), 0);
+          aria-describedby={descriptionId}
+          onOpenAutoFocus={() => {
+            // Let Radix initialize the focus scope normally so the focus trap
+            // works for all elements. The URL input gets focus via autoFocus.
           }}
           onCloseAutoFocus={(e) => e.preventDefault()}
         >
           <RadixDialog.Title className="text-sm font-semibold mb-4">
             Insert image
           </RadixDialog.Title>
+          <RadixDialog.Description id={descriptionId} className="sr-only">
+            Insert an image by URL or upload a file. Use the URL tab to paste an
+            image link, or the Upload tab to select a file from your device.
+          </RadixDialog.Description>
 
           {/* Tab switcher */}
           <div className="flex rounded-lg border border-border overflow-hidden mb-4 text-xs">
@@ -91,6 +121,8 @@ export function ImageButtonAdapter() {
               <input
                 ref={urlInputRef}
                 type="url"
+                // eslint-disable-next-line jsx-a11y/no-autofocus
+                autoFocus
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => {
@@ -106,6 +138,8 @@ export function ImageButtonAdapter() {
               <label className="block text-xs text-muted-foreground mb-1.5">Image file</label>
               <button
                 type="button"
+                // eslint-disable-next-line jsx-a11y/no-autofocus
+                autoFocus
                 onClick={() => fileInputRef.current?.click()}
                 className="w-full rounded-lg border border-dashed border-border bg-accent/30 hover:bg-accent/50 transition-colors px-3 py-4 text-sm text-muted-foreground flex flex-col items-center gap-1.5"
               >

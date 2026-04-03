@@ -387,6 +387,7 @@ export const useBlogStore = create<BlogState & BlogActions>((set, get) => ({
       await apiClient.post(`/blogs/${blogId}/versions/draft`, {
         blog_title: blogTitle || 'Untitled',
         blog_content: content,
+        blog_excerpt: currentBlog?.blog_excerpt ?? '',
         parent_version_id: sorted[0]?.id ?? null,
         tags: currentBlog?.tags ?? '',
         blog_visibility: currentBlog?.blog_visibility ?? 'public',
@@ -499,6 +500,7 @@ export const useBlogStore = create<BlogState & BlogActions>((set, get) => ({
       await apiClient.post(`/blogs/${id}/versions/publish`, {
         blog_title: get().blogTitle || 'Untitled',
         blog_content: get().getEditorContent(),
+        blog_excerpt: currentBlog?.blog_excerpt ?? '',
         tags: currentBlog?.tags ?? '',
         blog_visibility: currentBlog?.blog_visibility ?? 'public',
         comment_status: currentBlog?.comment_status ?? 'open',

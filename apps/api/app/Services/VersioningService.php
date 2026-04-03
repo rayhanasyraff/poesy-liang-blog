@@ -173,11 +173,29 @@ class VersioningService
         $allowed = [
             'blog_name', 'blog_visibility', 'comment_status', 'notification_status',
             'like_visibility', 'view_visibility', 'like_count', 'view_count', 'blog_status',
+            'blog_excerpt', 'tags',
         ];
         $update = array_intersect_key($settings, array_flip($allowed));
         $update['blog_date_modified']     = $now;
         $update['blog_date_modified_gmt'] = $now;
         Blog::where('id', $blogId)->update($update);
+
+        // Propagate excerpt/tags changes to the current draft version so the
+        // blog list (which reads latest_blog_excerpt from versions) stays in sync.
+        $versionUpdate = [];
+        if (isset($settings['blog_excerpt'])) {
+            $versionUpdate['blog_excerpt'] = $settings['blog_excerpt'];
+        }
+        if (isset($settings['tags'])) {
+            $versionUpdate['tags'] = $settings['tags'];
+        }
+        if (!empty($versionUpdate)) {
+            BlogVersion::where('blog_id', $blogId)
+                ->where('status', 'draft')
+                ->orderByDesc('version_number')
+                ->limit(1)
+                ->update($versionUpdate);
+        }
     }
 
     public function unpublishBlog(int $blogId): void
