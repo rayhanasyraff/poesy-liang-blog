@@ -6,6 +6,7 @@ use App\Http\Controllers\BlogVersionController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\MigrationController;
 use App\Http\Controllers\NormalizeController;
+use App\Http\Controllers\UploadController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WpPostController;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +74,9 @@ Route::middleware('jwt.auth')->group(function () {
     Route::put('/users/{id}',    [UserController::class, 'update']);
     Route::patch('/users/{id}',  [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+    // File upload
+    Route::post('/upload', [UploadController::class, 'upload']);
 
     // Migration
     Route::post('/migrate-wp-posts-journals-into-blogs', [MigrationController::class, 'migrate']);
