@@ -1,6 +1,7 @@
 import { ArrowUpRight, Coffee } from "lucide-react";
 import { VideoPlayer } from "./video-player/VideoPlayer";
 import InstagramEmbed from "./instagram-embed";
+import SocialPost from "./social-post/SocialPost";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import Image from "next/image";
 import Link from "next/link";
@@ -291,6 +292,7 @@ const components = {
   BuyMeACoffee,
   InstagramEmbed,
   Video,
+  SocialPost,
 };
 
 // Block-level HTML tags that signal legacy HTML content (not inline HTML in markdown)

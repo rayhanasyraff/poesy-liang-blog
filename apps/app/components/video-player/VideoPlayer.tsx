@@ -15,27 +15,7 @@ const DynamicVidstackPlayer = dynamic(
   }
 );
 
-// ── URL classifiers ──────────────────────────────────────────────────────────
-
-function getYouTubeId(src: string): string | null {
-  const m = src.match(
-    /(?:youtu\.be|youtube|youtube\.com|youtube-nocookie\.com)(?:\/shorts)?\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|)((?:\w|-){11})/
-  );
-  return m ? m[1] : null;
-}
-
-function getVimeoId(src: string): string | null {
-  const m = src.match(/(?:vimeo\.com\/(?:video\/)?)(\d+)/);
-  return m ? m[1] : null;
-}
-
-function isHLSorDASH(src: string): boolean {
-  return /\.(m3u8|mpd)(\?.*)?$/i.test(src);
-}
-
-function isDirectVideo(src: string): boolean {
-  return /\.(mp4|webm|ogg)(\?.*)?$/i.test(src);
-}
+import { getYouTubeId, getVimeoId, isHLSorDASH, isDirectVideo } from './utils';
 
 function getFilename(src: string): string {
   try {
@@ -59,9 +39,12 @@ function YouTubeThumbnail({ ytId, src }: { ytId: string; src: string }) {
       style={{ position: 'absolute', inset: 0, overflow: 'hidden', display: 'block', cursor: 'pointer' }}
     >
       <img
-        src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+        src={`https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`}
         alt="YouTube video thumbnail"
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        onError={(e) => {
+          (e.currentTarget as HTMLImageElement).src = `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`;
+        }}
       />
       <div
         style={{
@@ -193,7 +176,40 @@ export function VideoPlayer({
   }
 
   // ── Interactive player (public page) ────────────────────────────────────
-  if (ytId || vimeoId || isHLSorDASH(src) || isDirectVideo(src)) {
+
+  // External embeds — use native iframe so the platform handles its own UI
+  if (ytId) {
+    const embedUrl = `https://www.youtube.com/embed/${ytId}?rel=0`;
+    return (
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <iframe
+          src={embedUrl}
+          title="YouTube video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+        />
+      </div>
+    );
+  }
+
+  if (vimeoId) {
+    const embedUrl = `https://player.vimeo.com/video/${vimeoId}`;
+    return (
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <iframe
+          src={embedUrl}
+          title="Vimeo video"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+        />
+      </div>
+    );
+  }
+
+  // Direct files and HLS/DASH — use Vidstack
+  if (isHLSorDASH(src) || isDirectVideo(src)) {
     return (
       <div style={{ position: 'relative', width: '100%', height: '100%' }}>
         <DynamicVidstackPlayer key={src} src={src} {...rest} />

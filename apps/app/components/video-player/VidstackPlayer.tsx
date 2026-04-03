@@ -5,6 +5,7 @@ import {
   MediaPlayer,
   MediaProvider,
   PlayButton,
+  Gesture,
   Time,
   TimeSlider,
   useMediaState,
@@ -22,7 +23,7 @@ export function VidstackPlayer({
   onPause,
   onTimeUpdate,
   onEnded,
-}: VideoPlayerProps) {
+}: Readonly<VideoPlayerProps>) {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <MediaPlayer
@@ -35,6 +36,12 @@ export function VidstackPlayer({
         onEnded={onEnded}
       >
         <MediaProvider />
+        {/* Click anywhere on the video to toggle play/pause */}
+        <Gesture
+          style={{ position: 'absolute', inset: 0 }}
+          event="pointerup"
+          action="toggle:paused"
+        />
         {controls && <PlayerControls />}
       </MediaPlayer>
     </div>

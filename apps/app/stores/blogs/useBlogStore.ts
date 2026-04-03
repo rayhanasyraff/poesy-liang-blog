@@ -4,6 +4,16 @@ import type { ApiBlog, BlogSettings, BlogVersionSummary } from '@/types/blog';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 export type NewDraftSource = 'empty' | 'current' | number;
+export type BlogPublishStatus = 'unsaved' | 'draft' | 'published';
+
+export interface BlogStatusInfo {
+  currentVersionNumber: number | null;
+  publishedVersionNumber: number | null;
+  lastDraftSavedAt: Date | null;
+  createdAt: Date | null;
+  lastPublishedAt: Date | null;
+  publishStatus: BlogPublishStatus;
+}
 
 // ── Module-level closures ──────────────────────────────────────────────────────
 // Not Zustand state — avoids serializing markdown on every keystroke.
@@ -13,6 +23,26 @@ let _setMarkdown: ((md: string) => void) | null = null;
 
 // Deduplicates concurrent blog-creation requests (race condition guard).
 let _creationPromise: Promise<number | string> | null = null;
+
+// Queues content applied before BlogEditor registers its accessor.
+let _pendingContent: string | null = null;
+
+// Cache for getBlogStatusInfo — returns the same reference when inputs haven't changed,
+// so Zustand's useSyncExternalStore doesn't trigger an infinite re-render loop.
+let _statusInfoCache: { blog: ApiBlog | null; versions: BlogVersionSummary[]; result: BlogStatusInfo } | null = null;
+
+// Set to true while applyEditorContent is loading content into the editor.
+// Prevents setUnsavedChangesAt from being called (which would allow saveDraft to run).
+let _isApplyingContent = false;
+let _applyingContentTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+// The last raw content applied to the editor (after NBSP conversion).
+// Used so title-only saves don't call getMarkdown() and normalize the body.
+let _lastAppliedContent: string | null = null;
+
+// True once the user has actually edited the body (onChange fired).
+// False after content is applied. Lets us skip getMarkdown() when body is untouched.
+let _bodyModified = false;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -52,12 +82,17 @@ interface BlogActions {
 
   // ── Content helpers ─────────────────────────────────────────────────────────
   getEditorContent: () => string;
+  markBodyModified: () => void;
   applyEditorContent: (md: string) => void;
   getAutoExcerpt: () => string;
   getPreviewSlug: () => string | null;
+  getBlogStatusInfo: () => BlogStatusInfo;
+
+  // ── Blog ID resolution ───────────────────────────────────────────────────────
+  resolveBlogId: (blogId: number | string | undefined) => Promise<void>;
 
   // ── Async actions ───────────────────────────────────────────────────────────
-  fetchVersions: () => Promise<void>;
+  fetchVersions: (options?: { applyContent?: boolean }) => Promise<void>;
   saveDraft: () => Promise<void>;
   saveSettings: (key: keyof BlogSettings, value: string) => Promise<void>;
   revertVersion: (versionId: number) => Promise<void>;
@@ -65,6 +100,8 @@ interface BlogActions {
   deleteBlog: () => Promise<void>;
   checkSlugAvailable: (slug: string) => Promise<boolean>;
   renameBlogName: (slug: string) => Promise<void>;
+  publishBlog: () => Promise<{ success: boolean; error?: string; status?: number }>;
+  unpublishBlog: () => Promise<{ success: boolean }>;
   saveTags: (tags: string) => Promise<void>;
   saveExcerpt: (excerpt: string) => Promise<void>;
   savePublishedDate: (dateStr: string) => Promise<void>;
@@ -92,12 +129,22 @@ export const useBlogStore = create<BlogState & BlogActions>((set, get) => ({
   setBlogVersions: (blogVersions) => set({ blogVersions }),
   setBlogTitle: (blogTitle) => set({ blogTitle }),
   setSaveStatus: (saveStatus) => set({ saveStatus }),
-  setUnsavedChangesAt: (unsavedChangesAt) => set({ unsavedChangesAt }),
+  setUnsavedChangesAt: (unsavedChangesAt) => {
+    // Don't mark unsaved while we're loading content — that would let saveDraft fire.
+    if (_isApplyingContent && unsavedChangesAt !== null) return;
+    set({ unsavedChangesAt });
+  },
 
   resetEditorState: () => {
     _getMarkdown = null;
     _setMarkdown = null;
     _creationPromise = null;
+    _pendingContent = null;
+    _statusInfoCache = null;
+    _isApplyingContent = false;
+    _lastAppliedContent = null;
+    _bodyModified = false;
+    if (_applyingContentTimer) { clearTimeout(_applyingContentTimer); _applyingContentTimer = undefined; }
     set(initialState);
   },
 
@@ -106,11 +153,40 @@ export const useBlogStore = create<BlogState & BlogActions>((set, get) => ({
   registerMarkdownAccessor: (getter, setter) => {
     _getMarkdown = getter;
     _setMarkdown = setter;
+    if (_pendingContent !== null) {
+      setter(_pendingContent.replaceAll('\r\n', '\n').replaceAll('\r', '\n'));
+      _pendingContent = null;
+    }
   },
 
-  getEditorContent: () => _getMarkdown?.() ?? '',
+  // Returns the body content to save.
+  // If the user hasn't edited the body since the last content load, returns the
+  // original loaded content directly — skipping getMarkdown() and its normalizations.
+  // If the body has been edited, calls getMarkdown() and converts \u00a0 back to &#x20;.
+  getEditorContent: () => {
+    if (!_bodyModified && _lastAppliedContent !== null) return _lastAppliedContent;
+    return (_getMarkdown?.() ?? '').replaceAll('\u00a0', '&#x20;');
+  },
 
-  applyEditorContent: (md) => _setMarkdown?.(md),
+  // Called by BlogEditor's onChange whenever the user edits the body.
+  markBodyModified: () => { _bodyModified = true; },
+
+  applyEditorContent: (md) => {
+    // Normalize line endings, then convert &#x20; HTML entities to \u00a0 so remark
+    // preserves them (remark decodes &#x20; to a plain space then may drop leading spaces).
+    const normalized = md.replaceAll('\r\n', '\n').replaceAll('\r', '\n').replaceAll('&#x20;', '\u00a0');
+    _lastAppliedContent = md.replaceAll('\r\n', '\n').replaceAll('\r', '\n'); // original (with &#x20;)
+    _bodyModified = false;
+    _isApplyingContent = true;
+    set({ unsavedChangesAt: null });
+    if (_applyingContentTimer) clearTimeout(_applyingContentTimer);
+    _applyingContentTimer = setTimeout(() => { _isApplyingContent = false; }, 1000);
+    if (_setMarkdown) {
+      _setMarkdown(normalized);
+    } else {
+      _pendingContent = normalized;
+    }
+  },
 
   getAutoExcerpt: () => {
     const md = _getMarkdown?.() ?? '';
@@ -124,11 +200,85 @@ export const useBlogStore = create<BlogState & BlogActions>((set, get) => ({
     return !blog?.id ? slugify(blogTitle || '') || null : null;
   },
 
+  getBlogStatusInfo: (): BlogStatusInfo => {
+    const { blog, blogVersions } = get();
+    const cached = _statusInfoCache;
+    if (cached && cached.blog === blog && cached.versions === blogVersions) {
+      return cached.result;
+    }
+    const sorted = [...blogVersions].sort((a, b) => b.version_number - a.version_number);
+
+    const parseDate = (s: string | null | undefined): Date | null => {
+      if (!s || s === '0000-00-00 00:00:00') return null;
+      try { return new Date(s.includes('T') ? s : s.replace(' ', 'T') + 'Z'); } catch { return null; }
+    };
+
+    const result: BlogStatusInfo = {
+      currentVersionNumber: sorted[0]?.version_number ?? null,
+      publishedVersionNumber:
+        sorted.find((v) => v.status === 'committed' || v.status === 'published')?.version_number ?? null,
+      lastDraftSavedAt: parseDate(sorted.find((v) => v.status === 'draft')?.draft_saved_at),
+      createdAt: parseDate(blog?.blog_date_created),
+      lastPublishedAt: parseDate(blog?.blog_date_published),
+      publishStatus: !blog
+        ? 'unsaved'
+        : blog.blog_status === 'publish' || blog.blog_status === 'published'
+          ? 'published'
+          : 'draft',
+    };
+    _statusInfoCache = { blog, versions: blogVersions, result };
+    return result;
+  },
+
+  // ── resolveBlogId ──────────────────────────────────────────────────────────
+
+  resolveBlogId: async (blogId) => {
+    if (!blogId) return;
+
+    if (typeof blogId === 'number') {
+      get().setBlog({ id: blogId } as ApiBlog);
+      return;
+    }
+
+    const s = String(blogId);
+
+    const blogDashMatch = s.match(/^blog-(\d+)$/i);
+    if (blogDashMatch) {
+      get().setBlog({ id: Number(blogDashMatch[1]) } as ApiBlog);
+      return;
+    }
+
+    const numeric = Number(s);
+    if (!isNaN(numeric) && s.trim() !== '') {
+      get().setBlog({ id: numeric } as ApiBlog);
+      return;
+    }
+
+    // URL slug — resolve via API
+    try {
+      const res = await fetch(`/api/blogs/resolve?slug=${encodeURIComponent(s)}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.success || !json.data) return;
+      const apiId = json.data?.apiData?.id ?? null;
+      if (apiId) {
+        get().setBlog({ id: apiId } as ApiBlog);
+      } else {
+        get().applyEditorContent(json.data.content ?? '');
+        get().setBlogTitle(json.data.metadata?.title ?? '');
+        if (json.data.apiData) get().setBlog(json.data.apiData as ApiBlog);
+      }
+    } catch (err) {
+      console.error('[useBlogStore] resolveBlogId failed', err);
+    }
+  },
+
   // ── Internal: ensure blog exists before first save ─────────────────────────
 
   // ── fetchVersions ──────────────────────────────────────────────────────────
 
-  fetchVersions: async () => {
+  fetchVersions: async (options) => {
+    const applyContent = options?.applyContent ?? true;
     const { blog } = get();
     if (!blog?.id) return;
     try {
@@ -149,8 +299,10 @@ export const useBlogStore = create<BlogState & BlogActions>((set, get) => ({
           (a, b) => (b.version_number ?? 0) - (a.version_number ?? 0),
         );
         const latest = sorted[0];
-        get().setBlogTitle(latest.blog_title ?? blogData?.blog_title ?? '');
-        get().applyEditorContent(latest.blog_content ?? '');
+        if (applyContent) {
+          get().setBlogTitle(latest.blog_title ?? blogData?.blog_title ?? '');
+          get().applyEditorContent(latest.blog_content ?? '');
+        }
       } else if (blogData) {
         const title = blogData.blog_title ?? '';
         get().setBlogTitle(title);
@@ -195,8 +347,14 @@ export const useBlogStore = create<BlogState & BlogActions>((set, get) => ({
         if (!_creationPromise) {
           const now = nowMysql();
           _creationPromise = (async () => {
+            let slug = slugify(blogTitle || 'untitled');
+            const slugAvailable = await get().checkSlugAvailable(slug);
+            if (!slugAvailable) {
+              const suffix = Math.random().toString(36).slice(2, 6);
+              slug = `${slug}-${suffix}`;
+            }
             const res = await apiClient.post('/blogs', {
-              blog_name: slugify(blogTitle || 'untitled'),
+              blog_name: slug,
               blog_title: blogTitle || 'Untitled',
               blog_excerpt: '',
               blog_date: now,
@@ -238,7 +396,7 @@ export const useBlogStore = create<BlogState & BlogActions>((set, get) => ({
         view_visibility: currentBlog?.view_visibility ?? 'open',
       });
 
-      await get().fetchVersions();
+      await get().fetchVersions({ applyContent: false });
       get().setUnsavedChangesAt(null);
       get().setSaveStatus('saved');
     } catch (err: any) {
@@ -312,13 +470,67 @@ export const useBlogStore = create<BlogState & BlogActions>((set, get) => ({
   deleteBlog: async () => {
     const { blog } = get();
     if (!blog?.id) return;
-    if (!window.confirm('Delete this blog and all its versions? This cannot be undone.')) return;
     try {
       await apiClient.delete(`/blogs/${blog.id}`);
       get().setBlog(null);
       get().setBlogVersions([]);
     } catch (err) {
       console.error('[BlogStore] deleteBlog failed', err);
+    }
+  },
+
+  // ── publishBlog ────────────────────────────────────────────────────────────
+
+  publishBlog: async () => {
+    const { blogTitle } = get();
+    if (!blogTitle.trim()) return { success: false, error: 'No title' };
+
+    // Ensure blog exists — saveDraft handles creation with slug collision check
+    let id = get().blog?.id;
+    if (!id) {
+      get().setUnsavedChangesAt(new Date());
+      await get().saveDraft();
+      id = get().blog?.id;
+      if (!id) return { success: false, error: 'Failed to create blog' };
+    }
+
+    const { blog: currentBlog } = get();
+    try {
+      await apiClient.post(`/blogs/${id}/versions/publish`, {
+        blog_title: get().blogTitle || 'Untitled',
+        blog_content: get().getEditorContent(),
+        tags: currentBlog?.tags ?? '',
+        blog_visibility: currentBlog?.blog_visibility ?? 'public',
+        comment_status: currentBlog?.comment_status ?? 'open',
+        notification_status: currentBlog?.notification_status ?? 'all',
+        like_visibility: currentBlog?.like_visibility ?? 'open',
+        view_visibility: currentBlog?.view_visibility ?? 'open',
+      });
+      await get().fetchVersions({ applyContent: false });
+      get().setUnsavedChangesAt(null);
+      get().setSaveStatus('saved');
+      return { success: true };
+    } catch (err: any) {
+      get().setSaveStatus('error');
+      return {
+        success: false,
+        error: err?.response?.data?.error ?? err?.response?.data?.message ?? err?.message ?? 'Network error',
+        status: err?.response?.status,
+      };
+    }
+  },
+
+  // ── unpublishBlog ──────────────────────────────────────────────────────────
+
+  unpublishBlog: async () => {
+    const { blog } = get();
+    if (!blog?.id) return { success: false };
+    try {
+      await apiClient.post(`/blogs/${blog.id}/unpublish`, {});
+      await get().fetchVersions({ applyContent: false });
+      return { success: true };
+    } catch {
+      return { success: false };
     }
   },
 

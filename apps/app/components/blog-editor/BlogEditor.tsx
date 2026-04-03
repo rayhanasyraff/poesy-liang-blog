@@ -14,6 +14,7 @@ import type { ApiBlog, BlogSettings } from '@/types/blog';
 import { useBlogStore } from '@/stores/blogs/useBlogStore';
 import { CustomEditImageToolbar } from './toolbar/toolbars/content/buttons/image/CustomEditImageToolbar';
 import { VideoJsxEditor } from './toolbar/toolbars/content/buttons/video/VideoJsxEditor';
+import { SocialPostJsxEditor } from './toolbar/toolbars/content/buttons/social-post/SocialPostJsxEditor';
 import {
   MDXEditor,
   type MDXEditorMethods,
@@ -47,13 +48,21 @@ function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'untitled';
 }
 
-// ── Video JSX descriptor ──────────────────────────────────────────────────────
+// ── JSX descriptors ───────────────────────────────────────────────────────────
 const VideoDescriptor = {
   name: 'Video',
   kind: 'flow' as const,
   props: [{ name: 'url', type: 'string' as const }],
   hasChildren: false,
   Editor: VideoJsxEditor,
+};
+
+const SocialPostDescriptor = {
+  name: 'SocialPost',
+  kind: 'flow' as const,
+  props: [{ name: 'url', type: 'string' as const }],
+  hasChildren: false,
+  Editor: SocialPostJsxEditor,
 };
 
 // ── ToolbarContentsWrapper ────────────────────────────────────────────────────
@@ -178,7 +187,7 @@ export const BlogEditor = ({
       },
       EditImageToolbar: CustomEditImageToolbar,
     }),
-    jsxPlugin({ jsxComponentDescriptors: [VideoDescriptor] }),
+    jsxPlugin({ jsxComponentDescriptors: [VideoDescriptor, SocialPostDescriptor] }),
     diffSourcePlugin({ viewMode: 'rich-text' }),
     toolbarPlugin({
       toolbarContents: ToolbarContentsWrapper,
