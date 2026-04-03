@@ -85,7 +85,20 @@ class BlogController extends Controller
         }
 
         $total  = (clone $query)->count();
-        $blogs  = $query->orderByDesc('id')->limit($limit)->offset($offset)->get()->toArray();
+
+        // For public/published listing (used by the non-admin blog list page),
+        // sort by creation date (newest first). Otherwise fall back to id desc.
+        $statusLower = strtolower((string)$blogStatus);
+        if ($statusLower === 'published' || $statusLower === 'publish') {
+            // If visibility explicitly requested as public, sort by created date
+            if (strtolower((string)$blogVisibility) === 'public') {
+                $blogs = $query->orderByDesc('blog_date_created')->limit($limit)->offset($offset)->get()->toArray();
+            } else {
+                $blogs = $query->orderByDesc('id')->limit($limit)->offset($offset)->get()->toArray();
+            }
+        } else {
+            $blogs = $query->orderByDesc('id')->limit($limit)->offset($offset)->get()->toArray();
+        }
 
         $nextOffset = count($blogs) === $limit ? $offset + $limit : null;
 
