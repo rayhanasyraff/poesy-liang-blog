@@ -7,6 +7,7 @@ import { CustomMDX } from "@/components/mdx";
 import TableOfContents from "@/components/table-of-contents";
 import { extractHeadings, formatDate } from "@/lib/utils";
 import ClapLikeButton from "@/components/clap-like-button";
+import ViewTracker from "@/components/view-tracker";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -143,6 +144,7 @@ export default async function BlogDetailPage({ params }: Props) {
 
       {/* Floating clap like button */}
       <ClapLikeButton blogId={(blog.apiData as any)?.id ?? blog.slug} initialLikes={blog.like_count} />
+      {(blog.apiData as any)?.id && <ViewTracker blogId={(blog.apiData as any).id} />}
 
     </section>
   );

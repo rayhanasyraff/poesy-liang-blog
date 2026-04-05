@@ -291,4 +291,19 @@ class BlogController extends Controller
         $deleted = Blog::where('id', $id)->delete();
         return response()->json(['success' => true, 'deleted' => $deleted > 0]);
     }
+
+    public function incrementView(int $id): JsonResponse
+    {
+        $blog = Blog::select('id', 'view_count', 'view_visibility')->find($id);
+        if (!$blog) {
+            return response()->json(['success' => false, 'error' => 'Blog not found'], 404);
+        }
+
+        Blog::where('id', $id)->increment('view_count');
+
+        return response()->json([
+            'success'    => true,
+            'view_count' => (int) $blog->view_count + 1,
+        ]);
+    }
 }

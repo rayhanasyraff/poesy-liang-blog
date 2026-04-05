@@ -8,7 +8,6 @@ import {
   Lock,
   Bell,
   BellOff,
-  Heart,
   Eye,
   EyeOff,
   Check,
@@ -107,7 +106,7 @@ export function SettingsButton() {
           }
         />
         <ToggleItem
-          icon={<Heart size={13} />}
+          icon={<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><use href="#icon-claps" /></svg>}
           label="Show likes"
           active={s.like_visibility === 'open'}
           onToggle={() =>

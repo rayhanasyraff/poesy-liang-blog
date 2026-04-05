@@ -22,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script defer src="https://cloud.umami.is/script.js" data-website-id="576cbef5-8108-4229-bd33-5d6625cc0263"></script>
         <script src="http://localhost:8097"></script>
         <link rel="icon" type="image/png" href="/poesy-logo-pink.png" />
         <link rel="shortcut icon" type="image/png" href="/poesy-logo-pink.png" />

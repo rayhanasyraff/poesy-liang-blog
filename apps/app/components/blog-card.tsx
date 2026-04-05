@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Blog } from "@/types/blog";
-import { Eye, Heart, MessageSquare, Lock, Globe, History } from 'lucide-react';
+import { Eye, MessageSquare, Lock, Globe, History } from 'lucide-react';
 
 interface BlogCardProps {
   blog: Blog;
@@ -58,7 +58,7 @@ const BlogCardComponent = ({ blog, onHistory }: BlogCardProps) => {
   const apiId = (blog.apiData as any)?.id;
   const href = isAdmin
     ? `/admin/blog/${apiId ?? ((blog.apiData as any)?.blog_name ?? blog.slug)}`
-    : `/blog/${apiId ? `blog-${apiId}` : blog.slug}`;
+    : `/blog/${blog.slug}`;
 
   // API-exposed properties (apiData may be undefined for local MDX files)
   const api = (blog.apiData || {}) as any;
@@ -114,7 +114,7 @@ const BlogCardComponent = ({ blog, onHistory }: BlogCardProps) => {
             <span className="text-xs">{viewOpen ? views : 'off'}</span>
           </div>
           <div title={likeOpen ? `${likes} likes` : 'Likes disabled'} className="flex items-center space-x-1">
-            {likeOpen ? <Heart className="w-4 h-4 text-pink-600" /> : <Heart className="w-4 h-4 opacity-40" />}
+            <svg viewBox="0 0 24 24" width="16" height="16" className={likeOpen ? "" : "opacity-40"} fill="currentColor"><use href="#icon-claps" /></svg>
             <span className="text-xs">{likeOpen ? likes : 'off'}</span>
           </div>
           <div title={commentOpen ? `${comments} comments` : 'Comments disabled'} className="flex items-center space-x-1">

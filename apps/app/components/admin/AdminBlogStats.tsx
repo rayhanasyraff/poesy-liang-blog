@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Eye, Heart, MessageSquare } from 'lucide-react';
+import { Eye, MessageSquare } from 'lucide-react';
 
 interface Props {
   blogId: number;
@@ -64,7 +64,7 @@ export function AdminBlogStats({ blogId, initialLikes, views, comments }: Props)
               : 'text-neutral-600 dark:text-neutral-400 hover:text-rose-400'
           }`}
         >
-          <Heart size={14} strokeWidth={1.8} fill={liked ? 'currentColor' : 'none'} />
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><use href={liked ? "#icon-claps-fill" : "#icon-claps"} /></svg>
           <span className="tabular-nums">{likes}</span>
         </button>
 

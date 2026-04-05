@@ -5,20 +5,23 @@ const EXPRESS_API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-async function buildHeaders(method: string): Promise<Headers> {
+// Routes under bearer middleware (plain API token) — never use JWT for these
+const BEARER_ONLY_PATTERN = /^blogs\/\d+\/(likes|views)$/;
+
+async function buildHeaders(method: string, path: string): Promise<Headers> {
   const headers = new Headers();
-  if (WRITE_METHODS.has(method)) {
+  const apiToken = process.env.API_TOKEN;
+  const useJwt = WRITE_METHODS.has(method) && !BEARER_ONLY_PATTERN.test(path);
+
+  if (useJwt) {
     const jwt = await getJwt();
     if (jwt) {
       headers.set('Authorization', `Bearer ${jwt}`);
-    } else {
-      const apiToken = process.env.API_TOKEN;
-      if (apiToken) headers.set('Authorization', `Bearer ${apiToken}`);
+      return headers;
     }
-  } else {
-    const apiToken = process.env.API_TOKEN;
-    if (apiToken) headers.set('Authorization', `Bearer ${apiToken}`);
   }
+
+  if (apiToken) headers.set('Authorization', `Bearer ${apiToken}`);
   return headers;
 }
 
@@ -47,7 +50,7 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
   const query = searchParams ? '?' + searchParams : '';
   const targetUrl = `${EXPRESS_API}/${path.join('/')}${query}`;
 
-  const headers = await buildHeaders(request.method);
+  const headers = await buildHeaders(request.method, path.join('/'));
   const contentType = request.headers.get('content-type');
   if (contentType) headers.set('content-type', contentType);
   const fingerprint = request.headers.get('x-device-fingerprint');

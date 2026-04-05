@@ -112,7 +112,7 @@ export default function ClapLikeButton({ blogId, initialLikes = 0 }: Props) {
   const [likes, setLikes]                 = useState<number>(initialLikes ?? 0);
   const [liked, setLiked]                 = useState<boolean>(false);
   const [isLoading, setIsLoading]         = useState<boolean>(false);
-  const [cooldownUntil, setCooldownUntil] = useState<number>(0);
+  const [isCoolingDown, setIsCoolingDown] = useState<boolean>(false);
   const [tooltip, setTooltip]             = useState<string>("");
   const [errorMsg, setErrorMsg]           = useState<string>("");
   const [floats, setFloats]               = useState<number[]>([]);
@@ -186,7 +186,7 @@ export default function ClapLikeButton({ blogId, initialLikes = 0 }: Props) {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [liked, isLoading, cooldownUntil]);
+  }, [liked, isLoading, isCoolingDown]);
 
   const sendLike = useCallback(async (next: boolean) => {
     const res = await fetch(`/api/proxy/blogs/${id}/likes`, {
@@ -199,7 +199,7 @@ export default function ClapLikeButton({ blogId, initialLikes = 0 }: Props) {
   }, [id]);
 
   const doLike = useCallback(async () => {
-    if (isLoading || Date.now() < cooldownUntil) return;
+    if (isLoading || isCoolingDown) return;
 
     const next = !liked;
     setIsLoading(true);
@@ -216,7 +216,7 @@ export default function ClapLikeButton({ blogId, initialLikes = 0 }: Props) {
       enqueue({ blogId: id, action: next ? "like" : "unlike" });
       setLikedInStorage(id, next);
       setIsLoading(false);
-      setCooldownUntil(Date.now() + COOLDOWN_MS);
+      setIsCoolingDown(true); setTimeout(() => setIsCoolingDown(false), COOLDOWN_MS);
       showTooltip("Saved — will sync when online");
       return;
     }
@@ -243,7 +243,7 @@ export default function ClapLikeButton({ blogId, initialLikes = 0 }: Props) {
         }
         if (typeof result.has_liked === "boolean") setLiked(result.has_liked);
         setLikedInStorage(id, next);
-        setCooldownUntil(Date.now() + COOLDOWN_MS);
+        setIsCoolingDown(true); setTimeout(() => setIsCoolingDown(false), COOLDOWN_MS);
         setIsLoading(false);
         return;
       }
@@ -254,7 +254,7 @@ export default function ClapLikeButton({ blogId, initialLikes = 0 }: Props) {
     setLikes(l => next ? Math.max(0, l - 1) : l + 1);
     setIsLoading(false);
     showError("Failed to like — try again");
-  }, [id, liked, isLoading, cooldownUntil, sendLike, queryClient]);
+  }, [id, liked, isLoading, isCoolingDown, sendLike, queryClient]);
 
   const [burstKey, setBurstKey] = useState(0);
   const particles = [{ x: -14, y: -12, r: 4 }, { x: 2, y: -16, r: 3 }, { x: 16, y: -8, r: 4 }];
@@ -324,11 +324,11 @@ export default function ClapLikeButton({ blogId, initialLikes = 0 }: Props) {
           {/* Button */}
           <button
             onClick={doLike}
-            disabled={isLoading || Date.now() < cooldownUntil}
+            disabled={isLoading || isCoolingDown}
             aria-pressed={liked}
             aria-label={`${liked ? "Unlike" : "Like"} — ${likes} ${likes === 1 ? "like" : "likes"} — keyboard shortcut: L`}
             title={`${liked ? "Unlike" : "Like"} (press L)`}
-            className={`relative inline-flex items-center gap-3 px-3 py-2 rounded-full shadow-lg focus:outline-none transition-colors duration-200 ring-1 hover:ring-neutral-200 disabled:opacity-60 disabled:cursor-not-allowed ${liked ? "bg-rose-500 text-white" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-200"}`}
+            className={`relative inline-flex items-center gap-3 px-3 py-2 rounded-full shadow-lg focus:outline-none transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${liked ? "bg-rose-500 text-white" : "bg-secondary text-secondary-foreground"}`}
           >
             <motion.span
               className="inline-flex items-center justify-center w-7 h-7 rounded-full"
@@ -338,14 +338,14 @@ export default function ClapLikeButton({ blogId, initialLikes = 0 }: Props) {
               {isLoading ? (
                 <span className="block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
               ) : (
-                <svg viewBox="0 0 24 24" width="18" height="18" className={liked ? "text-white" : "text-neutral-700 dark:text-neutral-200"}>
+                <svg viewBox="0 0 24 24" width="18" height="18" className={liked ? "text-white" : "text-secondary-foreground"}>
                   <use href={liked ? "#icon-claps-fill" : "#icon-claps"} />
                 </svg>
               )}
             </motion.span>
 
             <motion.span
-              className={`text-sm font-medium leading-none tabular-nums ${liked ? "text-white" : "text-neutral-700 dark:text-neutral-200"}`}
+              className={`text-sm font-medium leading-none tabular-nums ${liked ? "text-white" : "text-secondary-foreground"}`}
               animate={liked ? { scale: [1, 1.12, 1] } : { scale: 1 }}
               transition={{ duration: 0.28 }}
             >

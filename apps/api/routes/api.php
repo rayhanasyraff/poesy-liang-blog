@@ -39,6 +39,7 @@ Route::middleware('bearer')->group(function () {
     Route::get('/blogs/{id}/likes',    [LikeController::class, 'get']);
     Route::post('/blogs/{id}/likes',   [LikeController::class, 'add']);
     Route::delete('/blogs/{id}/likes', [LikeController::class, 'remove']);
+    Route::post('/blogs/{id}/views',   [BlogController::class, 'incrementView']);
 
     // User reads
     Route::get('/users',      [UserController::class, 'index']);

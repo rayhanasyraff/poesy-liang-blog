@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { Blog } from "@/types/blog";
 import {
   Eye,
-  Heart,
   Lock,
   Globe,
   MessageSquare,
@@ -75,7 +74,7 @@ export default function AdminBlogCard({ blog }: AdminBlogCardProps) {
           </div>
 
           <div title={`${likes} likes`} aria-label={`likes-${likes}`}>
-            <Heart className="w-5 h-5 text-pink-600" />
+            <svg viewBox="0 0 24 24" width="20" height="20" className="text-pink-600" fill="currentColor"><use href="#icon-claps" /></svg>
           </div>
 
           <div title={`${views} views`} aria-label={`views-${views}`}>
