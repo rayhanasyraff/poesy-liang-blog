@@ -9,7 +9,8 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
   const { path } = await params;
   const targetPath = path.join('/');
   const searchParams = request.nextUrl.searchParams.toString();
-  const targetUrl = `${EXPRESS_API}/${targetPath}${searchParams ? `?${searchParams}` : ''}`;
+  const query = searchParams ? '?' + searchParams : '';
+  const targetUrl = `${EXPRESS_API}/${targetPath}${query}`;
 
   const headers = new Headers();
   const contentType = request.headers.get('content-type');
@@ -38,7 +39,7 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
     });
   } catch (err) {
     console.error(`[proxy] fetch failed for ${targetUrl}:`, err);
-    return NextResponse.json({ success: false, error: 'API unreachable' }, { status: 502 });
+    return NextResponse.json({ success: false, error: 'API unreachable', detail: String(err) }, { status: 502 });
   }
 
   const data = await upstream.arrayBuffer();
