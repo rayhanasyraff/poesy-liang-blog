@@ -29,14 +29,21 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
     : request.body;
 
   let upstream: Response;
+  const fetchOptions = {
+    method: request.method,
+    headers,
+    body,
+    // @ts-expect-error — Node fetch supports duplex for streaming bodies
+    duplex: body ? 'half' : undefined,
+  };
+
   try {
-    upstream = await fetch(targetUrl, {
-      method: request.method,
-      headers,
-      body,
-      // @ts-expect-error — Node fetch supports duplex for streaming bodies
-      duplex: body ? 'half' : undefined,
-    });
+    upstream = await fetch(targetUrl, fetchOptions);
+
+    if (upstream.status === 429) {
+      await new Promise(res => setTimeout(res, 1000));
+      upstream = await fetch(targetUrl, fetchOptions);
+    }
   } catch (err) {
     console.error(`[proxy] fetch failed for ${targetUrl}:`, err);
     const cause = err instanceof Error && err.cause ? String(err.cause) : undefined;
@@ -44,12 +51,15 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
   }
 
   const data = await upstream.arrayBuffer();
-  return new NextResponse(data, {
-    status: upstream.status,
-    headers: {
-      'content-type': upstream.headers.get('content-type') ?? 'application/json',
-    },
-  });
+  const resHeaders: Record<string, string> = {
+    'content-type': upstream.headers.get('content-type') ?? 'application/json',
+  };
+
+  if (request.method === 'GET' && upstream.status === 200) {
+    resHeaders['cache-control'] = 'public, s-maxage=30, stale-while-revalidate=60';
+  }
+
+  return new NextResponse(data, { status: upstream.status, headers: resHeaders });
 }
 
 export const GET    = (req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) => proxyRequest(req, ctx.params);

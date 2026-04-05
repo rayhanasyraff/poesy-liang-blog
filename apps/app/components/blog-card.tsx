@@ -58,7 +58,7 @@ const BlogCardComponent = ({ blog, onHistory }: BlogCardProps) => {
   const apiId = (blog.apiData as any)?.id;
   const href = isAdmin
     ? `/admin/blog/${apiId ?? ((blog.apiData as any)?.blog_name ?? blog.slug)}`
-    : `/blog/${blog.slug}`;
+    : `/blog/${apiId ? `blog-${apiId}` : blog.slug}`;
 
   // API-exposed properties (apiData may be undefined for local MDX files)
   const api = (blog.apiData || {}) as any;
