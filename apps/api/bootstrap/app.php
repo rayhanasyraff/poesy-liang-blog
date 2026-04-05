@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/load-secrets.php';
+
 /*
 |--------------------------------------------------------------------------
 | Create The Application
