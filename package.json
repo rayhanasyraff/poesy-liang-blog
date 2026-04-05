@@ -19,7 +19,7 @@
     "@tanstack/react-virtual": "^3.13.21",
     "@videojs/react": "^10.0.0-beta.8",
     "@vidstack/react": "^1.12.13",
-    "axios": "^1",
+    "axios": "^1.13.5",
     "axios-cache-interceptor": "^1",
     "bottleneck": "^2.19.5",
     "bsky-react-post": "^0.1.7",
