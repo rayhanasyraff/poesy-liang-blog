@@ -39,7 +39,8 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
     });
   } catch (err) {
     console.error(`[proxy] fetch failed for ${targetUrl}:`, err);
-    return NextResponse.json({ success: false, error: 'API unreachable', detail: String(err) }, { status: 502 });
+    const cause = err instanceof Error && err.cause ? String(err.cause) : undefined;
+    return NextResponse.json({ success: false, error: 'API unreachable', detail: String(err), cause }, { status: 502 });
   }
 
   const data = await upstream.arrayBuffer();
