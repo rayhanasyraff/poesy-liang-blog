@@ -79,10 +79,11 @@ class UploadController extends Controller
             ], 502);
         }
 
-        // 4. Upload file content to UploadThing ingest URL
-        $ingestRes = Http::withBody(
+        // 4. Upload file to UploadThing ingest URL as multipart/form-data
+        $ingestRes = Http::attach(
+            'file',
             file_get_contents($file->getRealPath()),
-            'application/octet-stream'
+            $file->getClientOriginalName()
         )->put($presignedUrl);
 
         if (!$ingestRes->successful()) {
