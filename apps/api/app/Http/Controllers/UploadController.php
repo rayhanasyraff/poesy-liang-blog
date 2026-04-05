@@ -51,11 +51,9 @@ class UploadController extends Controller
             'x-uploadthing-api-key' => $apiKey,
             'Content-Type'          => 'application/json',
         ])->post('https://api.uploadthing.com/v7/prepareUpload', [
-            'files' => [[
-                'fileName' => $file->getClientOriginalName(),
-                'fileSize' => $file->getSize(),
-                'fileType' => $mime,
-            ]],
+            'fileName'           => $file->getClientOriginalName(),
+            'fileSize'           => $file->getSize(),
+            'fileType'           => $mime,
             'acl'                => 'public-read',
             'contentDisposition' => 'inline',
         ]);
