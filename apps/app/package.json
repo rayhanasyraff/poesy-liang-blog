@@ -38,7 +38,7 @@
     "next-themes": "^0.4.6",
     "react": "^19.1.1",
     "react-social-media-embed": "*",
-    "react-swipeable-list": "^0.9.0",
+    "react-swipeable-list": "^1.10.0",
     "remark-gfm": "^4.0.1",
     "sugar-high": "^0.9.3",
     "tailwindcss-animate": "^1.0.7",
