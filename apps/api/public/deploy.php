@@ -27,7 +27,10 @@ foreach (glob($cacheDir . '/*.php') as $file) {
 }
 echo "Cache cleared: " . (empty($cleared) ? 'nothing to clear' : implode(', ', $cleared)) . "\n";
 
-// Run pending migrations
-$artisan = __DIR__ . '/../artisan';
-$output = shell_exec("php $artisan migrate --force 2>&1");
-echo "Migrations: " . ($output ?? 'no output') . "\n";
+// Run pending migrations via Artisan bootstrap (works even if shell_exec is disabled)
+$appBase = __DIR__ . '/..';
+require_once $appBase . '/vendor/autoload.php';
+$app = require_once $appBase . '/bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$status = $kernel->call('migrate', ['--force' => true]);
+echo "Migrations: exit=$status\n";
