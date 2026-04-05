@@ -102,7 +102,5 @@
   "workspaces": [
     "apps/*"
   ],
-  "overrides": {
-    "react-swipeable-list": "1.10.0"
-  }
+  "overrides": {}
 }
