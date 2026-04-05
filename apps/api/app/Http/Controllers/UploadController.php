@@ -52,9 +52,9 @@ class UploadController extends Controller
             'Content-Type'          => 'application/json',
         ])->post('https://api.uploadthing.com/v7/prepareUpload', [
             'files' => [[
-                'name' => $file->getClientOriginalName(),
-                'size' => $file->getSize(),
-                'type' => $mime,
+                'fileName' => $file->getClientOriginalName(),
+                'fileSize' => $file->getSize(),
+                'fileType' => $mime,
             ]],
             'acl'                => 'public-read',
             'contentDisposition' => 'inline',
