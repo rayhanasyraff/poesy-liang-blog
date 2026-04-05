@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { usePublisher, insertJsx$ } from '@mdxeditor/editor';
-import { Upload } from 'lucide-react';
+import { Loader2, Upload } from 'lucide-react';
 
 async function uploadVideoFile(file: File): Promise<string> {
   const form = new FormData();
@@ -115,11 +115,12 @@ export function VideoButtonAdapter() {
           ) : (
             <div className="mb-4">
               <label htmlFor="video-file-input" className="block text-xs text-muted-foreground mb-1.5">Video file</label>
-              <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="w-full rounded-lg border border-dashed border-border bg-accent/30 hover:bg-accent/50 transition-colors px-3 py-4 text-sm text-muted-foreground flex flex-col items-center gap-1.5">
-                <Upload size={18} />
-                <span>{file ? file.name : 'Click to select video'}</span>
-                {file && <span className="text-xs opacity-60">{(file.size / 1024 / 1024).toFixed(1)} MB</span>}
+              <button type="button" onClick={() => !uploading && fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full rounded-lg border border-dashed border-border bg-accent/30 hover:bg-accent/50 transition-colors px-3 py-4 text-sm text-muted-foreground flex flex-col items-center gap-1.5 disabled:pointer-events-none">
+                {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                <span>{uploading ? 'Uploading…' : file ? file.name : 'Click to select video'}</span>
+                {file && !uploading && <span className="text-xs opacity-60">{(file.size / 1024 / 1024).toFixed(1)} MB</span>}
               </button>
               <input id="video-file-input" ref={fileInputRef} type="file" accept="video/*" className="hidden"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)} />

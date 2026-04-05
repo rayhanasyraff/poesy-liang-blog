@@ -18,6 +18,7 @@ const nextConfig = {
           protocol: url.protocol.replace(':', ''),
         }
       }),
+      { hostname: 'utfs.io', protocol: 'https' },
     ],
   },
 

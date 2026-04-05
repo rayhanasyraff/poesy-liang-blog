@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { usePublisher, saveImage$ } from '@mdxeditor/editor';
-import { Upload } from 'lucide-react';
+import { Loader2, Upload } from 'lucide-react';
 import { ImageButton } from './ImageButton';
 
 export function ImageButtonAdapter() {
@@ -13,6 +13,7 @@ export function ImageButtonAdapter() {
   const [url, setUrl] = useState('');
   const [altText, setAltText] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
   const descriptionId = React.useId();
@@ -21,6 +22,7 @@ export function ImageButtonAdapter() {
     setUrl('');
     setAltText('');
     setFile(null);
+    setUploading(false);
     setTab('url');
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
@@ -41,18 +43,29 @@ export function ImageButtonAdapter() {
     requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true)));
   }, []);
 
-  const handleInsert = useCallback(() => {
+  const handleInsert = useCallback(async () => {
     if (tab === 'url') {
       const trimmed = url.trim();
       if (!trimmed) return;
       saveImage({ src: trimmed, altText: altText.trim() || undefined });
+      handleOpenChange(false);
     } else {
       if (!file) return;
-      const dt = new DataTransfer();
-      dt.items.add(file);
-      saveImage({ file: dt.files, altText: altText.trim() || undefined });
+      setUploading(true);
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        const res = await fetch('/api/upload', { method: 'POST', body: form });
+        if (!res.ok) throw new Error('Upload failed');
+        const { url: uploadedUrl } = await res.json();
+        saveImage({ src: uploadedUrl, altText: altText.trim() || undefined });
+        handleOpenChange(false);
+      } catch (err) {
+        console.error('Image upload failed', err);
+      } finally {
+        setUploading(false);
+      }
     }
-    handleOpenChange(false);
   }, [tab, url, altText, file, saveImage, handleOpenChange]);
 
   const canInsert = tab === 'url' ? !!url.trim() : !!file;
@@ -140,12 +153,13 @@ export function ImageButtonAdapter() {
                 type="button"
                 // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full rounded-lg border border-dashed border-border bg-accent/30 hover:bg-accent/50 transition-colors px-3 py-4 text-sm text-muted-foreground flex flex-col items-center gap-1.5"
+                onClick={() => !uploading && fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full rounded-lg border border-dashed border-border bg-accent/30 hover:bg-accent/50 transition-colors px-3 py-4 text-sm text-muted-foreground flex flex-col items-center gap-1.5 disabled:pointer-events-none"
               >
-                <Upload size={18} />
-                <span>{file ? file.name : 'Click to select image'}</span>
-                {file && <span className="text-xs opacity-60">{(file.size / 1024).toFixed(1)} KB</span>}
+                {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                <span>{uploading ? 'Uploading…' : file ? file.name : 'Click to select image'}</span>
+                {file && !uploading && <span className="text-xs opacity-60">{(file.size / 1024).toFixed(1)} KB</span>}
               </button>
               <input
                 ref={fileInputRef}
@@ -172,7 +186,8 @@ export function ImageButtonAdapter() {
             <RadixDialog.Close asChild>
               <button
                 type="button"
-                className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-accent transition-colors"
+                disabled={uploading}
+                className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-accent transition-colors disabled:opacity-40"
               >
                 Cancel
               </button>
@@ -180,10 +195,10 @@ export function ImageButtonAdapter() {
             <button
               type="button"
               onClick={handleInsert}
-              disabled={!canInsert}
+              disabled={!canInsert || uploading}
               className="text-xs px-3 py-1.5 rounded-lg bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-40 disabled:pointer-events-none"
             >
-              Insert
+              {uploading ? 'Uploading…' : 'Insert'}
             </button>
           </div>
         </RadixDialog.Content>
