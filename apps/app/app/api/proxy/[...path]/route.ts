@@ -5,60 +5,61 @@ const EXPRESS_API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-async function proxyRequest(request: NextRequest, params: Promise<{ path: string[] }>) {
-  const { path } = await params;
-  const targetPath = path.join('/');
-  const searchParams = request.nextUrl.searchParams.toString();
-  const query = searchParams ? '?' + searchParams : '';
-  const targetUrl = `${EXPRESS_API}/${targetPath}${query}`;
-
+async function buildHeaders(method: string): Promise<Headers> {
   const headers = new Headers();
-  const contentType = request.headers.get('content-type');
-  if (contentType) headers.set('content-type', contentType);
-
-  if (WRITE_METHODS.has(request.method)) {
+  if (WRITE_METHODS.has(method)) {
     const jwt = await getJwt();
     if (jwt) headers.set('Authorization', `Bearer ${jwt}`);
   } else {
     const apiToken = process.env.API_TOKEN;
     if (apiToken) headers.set('Authorization', `Bearer ${apiToken}`);
   }
+  return headers;
+}
 
-  const body = request.method === 'GET' || request.method === 'HEAD'
-    ? undefined
-    : request.body;
+async function fetchUpstream(targetUrl: string, fetchOptions: RequestInit): Promise<Response> {
+  const upstream = await fetch(targetUrl, fetchOptions);
+  if (upstream.status === 429) {
+    await new Promise(res => setTimeout(res, 1000));
+    return fetch(targetUrl, fetchOptions);
+  }
+  return upstream;
+}
+
+function buildResponseHeaders(method: string, status: number, contentType: string | null): Record<string, string> {
+  const headers: Record<string, string> = {
+    'content-type': contentType ?? 'application/json',
+  };
+  if (method === 'GET' && status === 200) {
+    headers['cache-control'] = 'public, s-maxage=30, stale-while-revalidate=60';
+  }
+  return headers;
+}
+
+async function proxyRequest(request: NextRequest, params: Promise<{ path: string[] }>) {
+  const { path } = await params;
+  const searchParams = request.nextUrl.searchParams.toString();
+  const query = searchParams ? '?' + searchParams : '';
+  const targetUrl = `${EXPRESS_API}/${path.join('/')}${query}`;
+
+  const headers = await buildHeaders(request.method);
+  const contentType = request.headers.get('content-type');
+  if (contentType) headers.set('content-type', contentType);
+
+  const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body;
+  const fetchOptions = { method: request.method, headers, body, duplex: body ? 'half' : undefined };
 
   let upstream: Response;
-  const fetchOptions = {
-    method: request.method,
-    headers,
-    body,
-    // @ts-expect-error — Node fetch supports duplex for streaming bodies
-    duplex: body ? 'half' : undefined,
-  };
-
   try {
-    upstream = await fetch(targetUrl, fetchOptions);
-
-    if (upstream.status === 429) {
-      await new Promise(res => setTimeout(res, 1000));
-      upstream = await fetch(targetUrl, fetchOptions);
-    }
+    upstream = await fetchUpstream(targetUrl, fetchOptions);
   } catch (err) {
     console.error(`[proxy] fetch failed for ${targetUrl}:`, err);
-    const cause = err instanceof Error && err.cause ? String(err.cause) : undefined;
-    return NextResponse.json({ success: false, error: 'API unreachable', detail: String(err), cause }, { status: 502 });
+    const cause = err instanceof Error && err.cause instanceof Error ? err.cause.message : String(err);
+    return NextResponse.json({ success: false, error: 'API unreachable', cause }, { status: 502 });
   }
 
   const data = await upstream.arrayBuffer();
-  const resHeaders: Record<string, string> = {
-    'content-type': upstream.headers.get('content-type') ?? 'application/json',
-  };
-
-  if (request.method === 'GET' && upstream.status === 200) {
-    resHeaders['cache-control'] = 'public, s-maxage=30, stale-while-revalidate=60';
-  }
-
+  const resHeaders = buildResponseHeaders(request.method, upstream.status, upstream.headers.get('content-type'));
   return new NextResponse(data, { status: upstream.status, headers: resHeaders });
 }
 
