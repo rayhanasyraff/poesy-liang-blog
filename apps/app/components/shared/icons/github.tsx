@@ -1,6 +1,6 @@
 import { ISVGProps } from "@/types";
 
-export default function IconGithub({ size = 16, ...props }: ISVGProps) {
+export default function IconGithub({ size = 16 }: ISVGProps) {
   return (
     <svg
       role="img"
@@ -8,7 +8,6 @@ export default function IconGithub({ size = 16, ...props }: ISVGProps) {
       viewBox="0 0 24 24"
       width={size}
       height={size}
-      {...props}
     >
       <path
         fill="currentColor"

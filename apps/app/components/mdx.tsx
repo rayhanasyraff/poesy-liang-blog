@@ -1,21 +1,16 @@
 import { ArrowUpRight, Coffee } from "lucide-react";
+import { VideoPlayer } from "./video-player/VideoPlayer";
 import InstagramEmbed from "./instagram-embed";
+import SocialPost from "./social-post/SocialPost";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
+import remarkGfm from "remark-gfm";
 import { highlight } from "sugar-high";
+import TurndownService from "turndown";
 import { CopyCode } from "./copy-code";
 import { ExpandableCode } from "./expandable-code";
-import {
-  TaskSimulator,
-  RaceConditionVisualizer,
-  GoroutineScheduler,
-  ChannelSimulator,
-  UnbufferedChannelDemo,
-  RealtimeAudioFlow,
-} from "./interactive-components";
-import { CodePlayground } from "./interactive-components/code-playground";
 
 function Table({ data }) {
   const headers = data.headers.map((header, index) => (
@@ -268,6 +263,16 @@ export function BuyMeACoffee({ username }: BuyMeACoffeeProps) {
   );
 }
 
+// million-ignore
+function Video({ url }: { url: string }) {
+  if (!url) return null;
+  return (
+    <div className="not-prose my-6 relative aspect-video w-full overflow-hidden rounded-lg">
+      <VideoPlayer src={url} controls />
+    </div>
+  );
+}
+
 const components = {
   h1: createHeading(1),
   h2: createHeading(2),
@@ -286,15 +291,51 @@ const components = {
   LinkCard,
   BuyMeACoffee,
   InstagramEmbed,
-  TaskSimulator,
-  RaceConditionVisualizer,
-  GoroutineScheduler,
-  ChannelSimulator,
-  UnbufferedChannelDemo,
-  CodePlayground,
-  RealtimeAudioFlow,
+  Video,
+  SocialPost,
 };
 
+// Block-level HTML tags that signal legacy HTML content (not inline HTML in markdown)
+const BLOCK_HTML_RE = /^<(p|div|h[1-6]|ul|ol|li|table|thead|tbody|tr|th|td|blockquote|pre|figure|section|article|header|footer|main|aside|nav|form|figure|figcaption)\b/i;
+
+function isLegacyHTML(source: string): boolean {
+  const trimmed = source.trimStart();
+  return BLOCK_HTML_RE.test(trimmed);
+}
+
+function htmlToMarkdown(html: string): string {
+  const td = new TurndownService({
+    headingStyle: 'atx',
+    codeBlockStyle: 'fenced',
+    emDelimiter: '*',
+    strongDelimiter: '**',
+    br: '\n',
+  });
+
+  // Keep <br> as a newline
+  td.addRule('lineBreak', {
+    filter: 'br',
+    replacement: () => '\n',
+  });
+
+  try {
+    return td.turndown(html)
+      .replace(/(```[\s\S]*?```)/g, '\n\n$1\n\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  } catch {
+    return html;
+  }
+}
+
 export function CustomMDX({ source }: { source: string }) {
-  return <MDXRemote source={source} components={components} />;
+  const processedSource = isLegacyHTML(source) ? htmlToMarkdown(source) : source;
+
+  return (
+    <MDXRemote
+      source={processedSource}
+      components={components}
+      options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+    />
+  );
 }

@@ -50,3 +50,5 @@ out
 test-output
 .claude
 .env
+
+**/vendor

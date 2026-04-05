@@ -1,0 +1,425 @@
+diff --git a/node_modules/@mdxeditor/editor b/node_modules/@mdxeditor/editor
+new file mode 120000
+index 0000000000000000000000000000000000000000..e9efd7196e8aa5d3097b264b342d378d07b9b884
+--- /dev/null
++++ b/node_modules/@mdxeditor/editor
+@@ -0,0 +1 @@
++../.bun/@mdxeditor+editor@3.52.4+22033cfba09c1560/node_modules/@mdxeditor/editor
+\ No newline at end of file
+diff --git a/LICENSE b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/LICENSE
+deleted file mode 100644
+index 86c3e1511c0d913cf1d8d1fe070e3e962bdab6a4..0000000000000000000000000000000000000000
+diff --git a/README.md b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/README.md
+deleted file mode 100644
+index 2c0f211f74940a48b7994a8ddc1b3bb11bfc8fe9..0000000000000000000000000000000000000000
+diff --git a/dist/FormatConstants.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/FormatConstants.js
+deleted file mode 100644
+index 10b4ea9bebe6f24b58b34116b469651a461b4da8..0000000000000000000000000000000000000000
+diff --git a/dist/MDXEditor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/MDXEditor.js
+deleted file mode 100644
+index 74f82456806dbc75c13c9b47b05e4564ba96d53b..0000000000000000000000000000000000000000
+diff --git a/dist/RealmWithPlugins.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/RealmWithPlugins.js
+deleted file mode 100644
+index 646834b775d7e1cc7ac8f6241d25bf9d02b2dfae..0000000000000000000000000000000000000000
+diff --git a/dist/defaultSvgIcons.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/defaultSvgIcons.js
+deleted file mode 100644
+index b150b89841f75aadfe7c4dd34d8b08ac4bb1f80c..0000000000000000000000000000000000000000
+diff --git a/dist/directive-editors/AdmonitionDirectiveDescriptor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/directive-editors/AdmonitionDirectiveDescriptor.js
+deleted file mode 100644
+index c6a18a8903e349de152b10f85d5de449b89e0032..0000000000000000000000000000000000000000
+diff --git a/dist/directive-editors/GenericDirectiveEditor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/directive-editors/GenericDirectiveEditor.js
+deleted file mode 100644
+index 6a38f2d12b91d60052ba38b55b13270894481cb4..0000000000000000000000000000000000000000
+diff --git a/dist/exportMarkdownFromLexical.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/exportMarkdownFromLexical.js
+deleted file mode 100644
+index 1c4087e93a5b3df3e0a998fae1261ff0b97babbc..0000000000000000000000000000000000000000
+diff --git a/dist/importMarkdownToLexical.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/importMarkdownToLexical.js
+deleted file mode 100644
+index 4a805fe75398673019901502f0ec810f3939f804..0000000000000000000000000000000000000000
+diff --git a/dist/index.d.ts b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/index.d.ts
+deleted file mode 100644
+index 660f04986107663734689a696ebf089c72e75957..0000000000000000000000000000000000000000
+diff --git a/dist/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/index.js
+deleted file mode 100644
+index 8801f77b0f3112c9b1019fdeed38e04fa177c4f2..0000000000000000000000000000000000000000
+diff --git a/dist/jsx-editors/GenericJsxEditor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/jsx-editors/GenericJsxEditor.js
+deleted file mode 100644
+index 39cf58d9959495dde6283f3e7d437b1bbda446ea..0000000000000000000000000000000000000000
+diff --git a/dist/mdastUtilHtmlComment.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/mdastUtilHtmlComment.js
+deleted file mode 100644
+index 35c26733185619bfeb2c1a62c8467b72dedb3b53..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/codeblock/CodeBlockNode.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/codeblock/CodeBlockNode.js
+deleted file mode 100644
+index dbfda885e3b9d34b010d4673c700857b08e150b4..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/codeblock/CodeBlockVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/codeblock/CodeBlockVisitor.js
+deleted file mode 100644
+index 38b5136fb4e7882254acd845b5d0401a0cbefd02..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/codeblock/MdastCodeVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/codeblock/MdastCodeVisitor.js
+deleted file mode 100644
+index 6d36f4b2470b4654ddac64a88afe3ad0a1863042..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/codeblock/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/codeblock/index.js
+deleted file mode 100644
+index 472aece2c80ea88d89856d5ab58b72d4bb4bdfc8..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/codemirror/CodeMirrorEditor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/codemirror/CodeMirrorEditor.js
+deleted file mode 100644
+index e3d8a7f7d52dd641b7733fb534774e7d2e6742b8..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/codemirror/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/codemirror/index.js
+deleted file mode 100644
+index 7e66e69860af6210f314f9771b3bd6a9ecf2f192..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/GenericHTMLNode.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/GenericHTMLNode.js
+deleted file mode 100644
+index 4d9486cbc54b894237a4c365d39773cfcf780b71..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/LexicalGenericHTMLNodeVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/LexicalGenericHTMLNodeVisitor.js
+deleted file mode 100644
+index 0c88e630b3751f5edf8041181127781a4abd9fc5..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/LexicalLinebreakVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/LexicalLinebreakVisitor.js
+deleted file mode 100644
+index 7fab306aa1f414e5db5903b2fe42fba92ccefb69..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/LexicalParagraphVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/LexicalParagraphVisitor.js
+deleted file mode 100644
+index ab885167491fc6d1799d3171ca29a6b7a94589c1..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/LexicalRootVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/LexicalRootVisitor.js
+deleted file mode 100644
+index 3d5c3ad27d286ecf2a452e3868138e18b2e0db4e..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/LexicalTextVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/LexicalTextVisitor.js
+deleted file mode 100644
+index 98f690e6b1ac2ec2a33f9a27fba55d26aa3d0a66..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/MdastBreakVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/MdastBreakVisitor.js
+deleted file mode 100644
+index e3883fb6dc8178007190a9fe67467246677ccfc1..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/MdastFormattingVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/MdastFormattingVisitor.js
+deleted file mode 100644
+index 41a621650ea58fdc8cc561da038c89caafc9a09e..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/MdastHTMLNode.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/MdastHTMLNode.js
+deleted file mode 100644
+index e7898c0704c333005dc68c0cb6a1cbaba494c863..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/MdastHTMLVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/MdastHTMLVisitor.js
+deleted file mode 100644
+index 5aa24a1ee57fc8ad0142e1d434b234282136a887..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/MdastParagraphVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/MdastParagraphVisitor.js
+deleted file mode 100644
+index 778755deb54f080d0c67bd8dd0629f01cf925d76..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/MdastRootVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/MdastRootVisitor.js
+deleted file mode 100644
+index 70705b57a1d74d39a63b7c5ebf386af5c32262c3..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/MdastTextVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/MdastTextVisitor.js
+deleted file mode 100644
+index 533e6ecfb165a4c12df4766d9a0aa22245140595..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/NestedLexicalEditor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/NestedLexicalEditor.js
+deleted file mode 100644
+index f1d11004464dc515dcd7eb4200fa9a108bf5901f..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/PropertyPopover.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/PropertyPopover.js
+deleted file mode 100644
+index f95fff89aa362d03ea0806ca0a2970ebae9a6368..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/SharedHistoryPlugin.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/SharedHistoryPlugin.js
+deleted file mode 100644
+index 828809f65fa6e475146114145ded68f375921e20..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/index.js
+deleted file mode 100644
+index 8a897ec0121f7bb41b245e74a94a9e062ec2e417..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/ui/DownshiftAutoComplete.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/ui/DownshiftAutoComplete.js
+deleted file mode 100644
+index 092caf65ea7df51413bf6cd45868ea6a9ae778d4..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/core/ui/PopoverUtils.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/core/ui/PopoverUtils.js
+deleted file mode 100644
+index bb3e0f53bc857960c9b39661cecc77024137198b..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/diff-source/DiffSourceWrapper.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/diff-source/DiffSourceWrapper.js
+deleted file mode 100644
+index 7de82fe704c098df59e8063dfb41224f2968d213..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/diff-source/DiffViewer.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/diff-source/DiffViewer.js
+deleted file mode 100644
+index a7128b7db22a48e473874314690924ffe4c9a50c..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/diff-source/SourceEditor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/diff-source/SourceEditor.js
+deleted file mode 100644
+index 51b7392ef7a3e863095c225dbd0d7db3fa17551b..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/diff-source/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/diff-source/index.js
+deleted file mode 100644
+index 0004bcf2201eaf00f70a259ce622d4672c553011..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/directives/DirectiveNode.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/directives/DirectiveNode.js
+deleted file mode 100644
+index d8f976bd6d1b1d8d52a4415f060eeed6fa21c42c..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/directives/DirectiveVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/directives/DirectiveVisitor.js
+deleted file mode 100644
+index bd01ff5680fc4ac75d1e6ac2e3cf2ffa879c2f05..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/directives/MdastDirectiveVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/directives/MdastDirectiveVisitor.js
+deleted file mode 100644
+index 9cff2b1c4b148c90900ba542422871aebc6b563b..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/directives/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/directives/index.js
+deleted file mode 100644
+index 0d5f2ca0e94552c1a65881b5ef9d02d13a4050b1..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/frontmatter/FrontmatterEditor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/frontmatter/FrontmatterEditor.js
+deleted file mode 100644
+index 0f9c46d9ed6307b9a820533b39e760dcf5c4aecb..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/frontmatter/FrontmatterNode.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/frontmatter/FrontmatterNode.js
+deleted file mode 100644
+index 66049500ce5913c90bb07b279349dce9e8286094..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/frontmatter/LexicalFrontmatterVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/frontmatter/LexicalFrontmatterVisitor.js
+deleted file mode 100644
+index 69427f90051b57138974c785234736a87b23d9d7..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/frontmatter/MdastFrontmatterVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/frontmatter/MdastFrontmatterVisitor.js
+deleted file mode 100644
+index d36d5f783d341aca214766f0dea6991fe9e3e763..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/frontmatter/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/frontmatter/index.js
+deleted file mode 100644
+index d216bfd8e81c6599107db9d68acafe5f501db1ee..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/headings/LexicalHeadingVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/headings/LexicalHeadingVisitor.js
+deleted file mode 100644
+index 7b8c1ea839ff4c9957ae0b97fa0616be5bdf4ffa..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/headings/MdastHeadingVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/headings/MdastHeadingVisitor.js
+deleted file mode 100644
+index da7cec99285ac1e9f02bd5e515df101493e65de1..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/headings/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/headings/index.js
+deleted file mode 100644
+index 192740de047914bb28cad73f364ccf1401f0261f..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/image/EditImageToolbar.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/image/EditImageToolbar.js
+deleted file mode 100644
+index d1b6720853ffc9dfd93a7d45a5f52348435d65a6..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/image/ImageDialog.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/image/ImageDialog.js
+deleted file mode 100644
+index 191855f1e8813d656f116c4128cb1b3735500e23..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/image/ImageEditor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/image/ImageEditor.js
+deleted file mode 100644
+index 556023d148bbc0336ab6c102ca31b7a5f1b17512..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/image/ImageNode.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/image/ImageNode.js
+deleted file mode 100644
+index db070a4b84c9fce124c6125aadf8eabc349a40ca..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/image/ImagePlaceholder.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/image/ImagePlaceholder.js
+deleted file mode 100644
+index 37703a0cef94b263067d52ef93c41c74e3906615..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/image/ImageResizer.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/image/ImageResizer.js
+deleted file mode 100644
+index fd06ccbd272ee0ef9a6bcb2e47aa40e8756a68fd..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/image/LexicalImageVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/image/LexicalImageVisitor.js
+deleted file mode 100644
+index a2d007be34a55bd3a286fc60e421af545c0cfb62..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/image/MdastImageVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/image/MdastImageVisitor.js
+deleted file mode 100644
+index f2cfb895437c1d008f1e13b25aca9e04aa7b83f2..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/image/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/image/index.js
+deleted file mode 100644
+index a53d1d858362d283e0ce9a4812aa789e2deae3ae..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/jsx/LexicalJsxNode.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/jsx/LexicalJsxNode.js
+deleted file mode 100644
+index f193aa1dfec81bd684ed0e9351ae1acf116f3d34..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/jsx/LexicalJsxVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/jsx/LexicalJsxVisitor.js
+deleted file mode 100644
+index e9bcf2a635a6f47be8dd4830162cb1e125e90d71..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/jsx/LexicalMdxExpressionNode.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/jsx/LexicalMdxExpressionNode.js
+deleted file mode 100644
+index fd36ee55f94daba36d75dca606abaa1009cd27d7..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/jsx/LexicalMdxExpressionVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/jsx/LexicalMdxExpressionVisitor.js
+deleted file mode 100644
+index d494b171ab88a934b5fbff1781484836cb2550bf..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/jsx/MdastMdxExpressionVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/jsx/MdastMdxExpressionVisitor.js
+deleted file mode 100644
+index 7d247b3dcf90a3298520b47878575b96d8be3c7a..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/jsx/MdastMdxJsEsmVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/jsx/MdastMdxJsEsmVisitor.js
+deleted file mode 100644
+index 2703c8722914fada4b156dfc012fa5899f1bfe64..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/jsx/MdastMdxJsxElementVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/jsx/MdastMdxJsxElementVisitor.js
+deleted file mode 100644
+index df69d7dab0e7023a615b3e476fde023525d56a6b..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/jsx/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/jsx/index.js
+deleted file mode 100644
+index 8d29ecda15c00e2867bf1e111741ffd1c36392f7..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/link/AutoLinkPlugin.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/link/AutoLinkPlugin.js
+deleted file mode 100644
+index 5af53aed5dce18ce06b13e38563468acba2fb189..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/link/LexicalLinkVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/link/LexicalLinkVisitor.js
+deleted file mode 100644
+index d660ff4878f9d4c4dfe4cc8eec3fb835d309978a..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/link/MdastLinkVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/link/MdastLinkVisitor.js
+deleted file mode 100644
+index 82120e99cb6dfc2d0f2c1fa2628863f3fc045308..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/link/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/link/index.js
+deleted file mode 100644
+index 2fa8d5cba56b89cfe5865e57db67096969946e4e..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/link-dialog/LinkDialog.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/link-dialog/LinkDialog.js
+deleted file mode 100644
+index 7c4f49dcc4c0104d5181e09c6fb2fd312786b9d7..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/link-dialog/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/link-dialog/index.js
+deleted file mode 100644
+index 45a0b5dfb156a69b14c0b0a2edbc7049c8411ac4..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/lists/LexicalListItemVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/lists/LexicalListItemVisitor.js
+deleted file mode 100644
+index d2e46f6b0233d29d39f1363cf10c191b6d3912f8..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/lists/LexicalListVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/lists/LexicalListVisitor.js
+deleted file mode 100644
+index c8ccdc6a395be2ca9dc5c20dff472c16e22ad9b1..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/lists/MdastListItemVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/lists/MdastListItemVisitor.js
+deleted file mode 100644
+index 9dc4a815d153c7977cdff51a2c0c646a42d1aa1c..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/lists/MdastListVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/lists/MdastListVisitor.js
+deleted file mode 100644
+index fc27300dd4734538e253d37412213a2f2dd610ef..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/lists/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/lists/index.js
+deleted file mode 100644
+index eec8371b8252e01d934f1fa1e08ced56a9f30a5d..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/markdown-shortcut/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/markdown-shortcut/index.js
+deleted file mode 100644
+index 24c40398ca569a18328a0701f9bd2b13c2e18b2e..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/maxlength/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/maxlength/index.js
+deleted file mode 100644
+index 48214b5fe0233b69652ea6c44ec3b7594a14c4c6..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/quote/LexicalQuoteVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/quote/LexicalQuoteVisitor.js
+deleted file mode 100644
+index db65385788e0f26989a4c047f7a96c82539bdc53..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/quote/MdastBlockQuoteVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/quote/MdastBlockQuoteVisitor.js
+deleted file mode 100644
+index 854e7ce2ff29eb4998c3ee15d5c04d404ad407cf..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/quote/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/quote/index.js
+deleted file mode 100644
+index dfda491e4edede15b23b6b9407089c333f6aaae4..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/remote/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/remote/index.js
+deleted file mode 100644
+index 7ff349c2e8c6b2a7a02403fe51be51706b1d4b08..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/sandpack/SandpackEditor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/sandpack/SandpackEditor.js
+deleted file mode 100644
+index 5e1e42431c41fc31ce497d76d8b41b9b7f6dd66c..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/sandpack/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/sandpack/index.js
+deleted file mode 100644
+index 6d9cb265855bf8297f87cf9d4230314809248959..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/sandpack/useCodeMirrorRef.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/sandpack/useCodeMirrorRef.js
+deleted file mode 100644
+index 760bb16f315425a4ae5124414fc9d65f9fd1bb1d..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/search/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/search/index.js
+deleted file mode 100644
+index 534114110ee56f8c23100a018e4ca8b1efbe6349..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/table/LexicalTableVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/table/LexicalTableVisitor.js
+deleted file mode 100644
+index 6d963d7e88f01e6c0df8cd40625204ca5ecaeba9..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/table/MdastTableVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/table/MdastTableVisitor.js
+deleted file mode 100644
+index da87b96d91e066344c8d86b9d94ef9636b3f5885..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/table/TableEditor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/table/TableEditor.js
+deleted file mode 100644
+index 021feee719d86a5ae3a16068f92321ba2f95df0b..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/table/TableNode.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/table/TableNode.js
+deleted file mode 100644
+index 348748da4733e3af47ed1659a4d837eccd7fec02..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/table/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/table/index.js
+deleted file mode 100644
+index 87c77cb2a2d70cf7d78397eb9373d81804b0bd45..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/thematic-break/LexicalThematicBreakVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/thematic-break/LexicalThematicBreakVisitor.js
+deleted file mode 100644
+index 61e67eb7f10533550c44519d666948e478c4ef57..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/thematic-break/MdastThematicBreakVisitor.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/thematic-break/MdastThematicBreakVisitor.js
+deleted file mode 100644
+index 1916ece924aae7a3e911407dd0490f0d8a767584..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/thematic-break/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/thematic-break/index.js
+deleted file mode 100644
+index 277d1eace836dbdd1a225a6369950aae04a6f399..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/BlockTypeSelect.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/BlockTypeSelect.js
+deleted file mode 100644
+index 0aec774466913b95eea40d098050a51e263c3d22..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/BoldItalicUnderlineToggles.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/BoldItalicUnderlineToggles.js
+deleted file mode 100644
+index 38269479188b2f7b92fd59d056d44fe5e743bc3e..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/ChangeAdmonitionType.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/ChangeAdmonitionType.js
+deleted file mode 100644
+index ec2d44237bfd4c769ec90540fad7efc528ead63b..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/ChangeCodeMirrorLanguage.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/ChangeCodeMirrorLanguage.js
+deleted file mode 100644
+index d9057892025f4bb299a4e5edd099f27fa4cf30d0..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/CodeToggle.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/CodeToggle.js
+deleted file mode 100644
+index e573b95f7798fc685ddd5d0b12d8e8c8af13da7b..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/CreateLink.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/CreateLink.js
+deleted file mode 100644
+index ecbfe9192e38a2ef6798b5c2f25ecfba67ec6aa0..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/DiffSourceToggleWrapper.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/DiffSourceToggleWrapper.js
+deleted file mode 100644
+index 09b95018cc706466dd3e230a7f4839d78e7727b7..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/HighlightToggle.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/HighlightToggle.js
+deleted file mode 100644
+index 7e109027e091b5ad5c38185711ab2032144dbf06..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/InsertAdmonition.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/InsertAdmonition.js
+deleted file mode 100644
+index 90761a3f27349756a1b7d3509d625c806af493ad..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/InsertCodeBlock.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/InsertCodeBlock.js
+deleted file mode 100644
+index e1a5a353d4874917b7a12d8198ae759f000b5e95..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/InsertFrontmatter.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/InsertFrontmatter.js
+deleted file mode 100644
+index ff48e76c66f421c67f83bddb47d04d5aea2d5e2f..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/InsertImage.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/InsertImage.js
+deleted file mode 100644
+index 2bff4b6a965d518fa8820a273c6347483960dd23..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/InsertSandpack.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/InsertSandpack.js
+deleted file mode 100644
+index a8e9960f756be30326cca86ad9aa27bc20a36423..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/InsertTable.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/InsertTable.js
+deleted file mode 100644
+index 2288feca2dfcd9fb25ac24a458fe07e0b723cbf6..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/InsertThematicBreak.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/InsertThematicBreak.js
+deleted file mode 100644
+index b304a3c1591b2a3a7e6d0ea55174326c6162873a..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/KitchenSinkToolbar.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/KitchenSinkToolbar.js
+deleted file mode 100644
+index 15ee898df4bf00bcc15e76fabb052ea5bfd89a47..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/ListsToggle.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/ListsToggle.js
+deleted file mode 100644
+index 6257f8c923dd42df2bf49478bf1b7d6022563269..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/ShowSandpackInfo.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/ShowSandpackInfo.js
+deleted file mode 100644
+index 6da80e2b9e6fc5e9c1e43491a1092d4823a31bcd..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/components/UndoRedo.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/components/UndoRedo.js
+deleted file mode 100644
+index dd9b6c9e975e93ebecf8810a233d0afa2c5eac2c..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/index.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/index.js
+deleted file mode 100644
+index ebdfccacc6340051d7700ca51f252b35dbef7c98..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/primitives/DialogButton.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/primitives/DialogButton.js
+deleted file mode 100644
+index 8088ed66557968e11d213ffa1a8a3bc94eedc59c..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/primitives/TooltipWrap.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/primitives/TooltipWrap.js
+deleted file mode 100644
+index 4aa35a310cbf95bd5cb12cfa4242b5d61521388e..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/primitives/select.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/primitives/select.js
+deleted file mode 100644
+index 819ebd5e103dc4d5bea1dd637f25df6f97b28a33..0000000000000000000000000000000000000000
+diff --git a/dist/plugins/toolbar/primitives/toolbar.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/plugins/toolbar/primitives/toolbar.js
+deleted file mode 100644
+index 8f7635526e7b3af60a58189b9bfbaacf7103a614..0000000000000000000000000000000000000000
+diff --git a/dist/style.css b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/style.css
+deleted file mode 100644
+index 853ff148f0b673c56c870c43c85084ccfe97aa38..0000000000000000000000000000000000000000
+diff --git a/dist/styles/globals.css.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/styles/globals.css.js
+deleted file mode 100644
+index 8b137891791fe96927ad78e64b0aad7bded08bdc..0000000000000000000000000000000000000000
+diff --git a/dist/styles/lexical-theme.module.css.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/styles/lexical-theme.module.css.js
+deleted file mode 100644
+index 86f6f7817b1d7dbca46c4924e65a747bd84f68eb..0000000000000000000000000000000000000000
+diff --git a/dist/styles/lexicalTheme.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/styles/lexicalTheme.js
+deleted file mode 100644
+index 882a67784a9a62d6f391e650c4e72854e3965674..0000000000000000000000000000000000000000
+diff --git a/dist/styles/ui.module.css.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/styles/ui.module.css.js
+deleted file mode 100644
+index 9202c671afa254258dbd508e55ac3a9470ba26ce..0000000000000000000000000000000000000000
+diff --git a/dist/utils/detectMac.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/utils/detectMac.js
+deleted file mode 100644
+index 89329b5d0cee0448a33ec37780f687cb21f604de..0000000000000000000000000000000000000000
+diff --git a/dist/utils/fp.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/utils/fp.js
+deleted file mode 100644
+index 51e962026a00b1ee8c14ea8eef313a076a6c29ad..0000000000000000000000000000000000000000
+diff --git a/dist/utils/isPartOftheEditorUI.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/utils/isPartOftheEditorUI.js
+deleted file mode 100644
+index 04c092de7358f622f0aef9bea78aa36daf6ec77a..0000000000000000000000000000000000000000
+diff --git a/dist/utils/lexicalHelpers.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/utils/lexicalHelpers.js
+deleted file mode 100644
+index a32b549eeea731cc6e0f4f1e4071d2c4b9a457cb..0000000000000000000000000000000000000000
+diff --git a/dist/utils/makeHslTransparent.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/utils/makeHslTransparent.js
+deleted file mode 100644
+index 2a4a33cffd7b3a46ae8c310d062b2c8d833ef1dd..0000000000000000000000000000000000000000
+diff --git a/dist/utils/mergeStyleAttributes.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/utils/mergeStyleAttributes.js
+deleted file mode 100644
+index 459e63d4e821d1c666dee44eefab785c97c676a8..0000000000000000000000000000000000000000
+diff --git a/dist/utils/uuid4.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/utils/uuid4.js
+deleted file mode 100644
+index 080756072c67ff330db9b3bb941dc9953d5ffc7f..0000000000000000000000000000000000000000
+diff --git a/dist/utils/voidEmitter.js b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/dist/utils/voidEmitter.js
+deleted file mode 100644
+index 5c97782badef73fbfbdf657b7befcec98a977ba9..0000000000000000000000000000000000000000
+diff --git a/package.json b/C:/Users/user/.bun/install/cache/@mdxeditor/editor@3.52.4@@@1/package.json
+deleted file mode 100644
+index 7a39d33f5c407c61ff2d21719c938ffca0c28340..0000000000000000000000000000000000000000

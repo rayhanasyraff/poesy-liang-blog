@@ -1,0 +1,11 @@
+{
+  "name": "@poesy-liang-blog/api",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "php -S localhost:8000 -t public"
+      }
+    }
+  }
+}

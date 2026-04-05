@@ -1,0 +1,17 @@
+[09:36:54.321] [INFO] [36mInitializing Storybook[39m
+[09:36:56.131] [DEBUG] Getting package.json info for C:/poesy-liang-blog/package.json...
+[09:36:56.132] [DEBUG] Getting CLI versions from NPM for storybook...
+[09:36:56.132] [DEBUG] Executing command: npm info storybook version
+[09:36:59.806] [INFO] Adding Storybook version 10.2.19 to your project
+[09:36:59.809] [ERROR] [38;2;241;97;97mSB_CLI_INIT_0001 (NxProjectDetectedError): We have detected Nx in your project. Nx has its own Storybook initializer, so please use it instead.
+Run "nx g @nx/storybook:configuration <your-project-name>" to add Storybook to a given Nx app or lib.
+
+More info: https://nx.dev/nx-api/storybook#generating-storybook-configuration
+[39m
+    at ProjectTypeService.autoDetectProjectType (file:///C:/Users/user/AppData/Local/Temp/bunx-3660323089-create-storybook@latest/node_modules/create-storybook/dist/_node-chunks/chunk-A2TV2F7M.js:735:15)
+    at async ProjectDetectionCommand.execute (file:///C:/Users/user/AppData/Local/Temp/bunx-3660323089-create-storybook@latest/node_modules/create-storybook/dist/_node-chunks/chunk-A2TV2F7M.js:830:22)
+    at async doInitiate (file:///C:/Users/user/AppData/Local/Temp/bunx-3660323089-create-storybook@latest/node_modules/create-storybook/dist/_node-chunks/chunk-A2TV2F7M.js:2830:143)
+    at async file:///C:/Users/user/AppData/Local/Temp/bunx-3660323089-create-storybook@latest/node_modules/create-storybook/dist/_node-chunks/chunk-A2TV2F7M.js:2882:20
+    at async withTelemetry (file:///C:/Users/user/AppData/Local/Temp/bunx-3660323089-create-storybook@latest/node_modules/storybook/dist/_node-chunks/chunk-FJZ625UU.js:218:12)
+    at async initiate (file:///C:/Users/user/AppData/Local/Temp/bunx-3660323089-create-storybook@latest/node_modules/create-storybook/dist/_node-chunks/chunk-A2TV2F7M.js:2875:24)
+    at async _Command.<anonymous> (file:///C:/Users/user/AppData/Local/Temp/bunx-3660323089-create-storybook@latest/node_modules/create-storybook/dist/_node-chunks/run-BFBO7QC3.js:2684:144)
