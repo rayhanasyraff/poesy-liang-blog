@@ -9,6 +9,7 @@ import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
 import Providers from "@/components/providers";
 import { LoadingProvider } from "@/components/loading-provider";
+import ClapIcon from "@/components/shared/icons/claps";
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -56,6 +57,7 @@ export default function RootLayout({
             </LoadingProvider>
           </ThemeProvider>
         </Providers>
+        <ClapIcon />
         <Analytics />
         <SpeedInsights />
       </body>

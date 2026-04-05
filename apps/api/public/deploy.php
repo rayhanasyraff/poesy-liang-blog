@@ -26,3 +26,8 @@ foreach (glob($cacheDir . '/*.php') as $file) {
     $cleared[] = basename($file);
 }
 echo "Cache cleared: " . (empty($cleared) ? 'nothing to clear' : implode(', ', $cleared)) . "\n";
+
+// Run pending migrations
+$artisan = __DIR__ . '/../artisan';
+$output = shell_exec("php $artisan migrate --force 2>&1");
+echo "Migrations: " . ($output ?? 'no output') . "\n";

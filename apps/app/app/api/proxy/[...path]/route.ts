@@ -45,6 +45,8 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
   const headers = await buildHeaders(request.method);
   const contentType = request.headers.get('content-type');
   if (contentType) headers.set('content-type', contentType);
+  const fingerprint = request.headers.get('x-device-fingerprint');
+  if (fingerprint) headers.set('x-device-fingerprint', fingerprint);
 
   const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body;
   const fetchOptions = { method: request.method, headers, body, duplex: body ? 'half' : undefined };

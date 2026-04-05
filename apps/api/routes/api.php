@@ -36,7 +36,9 @@ Route::middleware('bearer')->group(function () {
     Route::get('/blogs/{id}',                    [BlogController::class,        'show'])->where('id', '[0-9]+');
     Route::get('/blogs/{id}/versions',           [BlogVersionController::class, 'index']);
     Route::get('/blogs/{id}/versions/{verId}',   [BlogVersionController::class, 'show']);
-    Route::get('/blogs/{id}/likes',              [LikeController::class,        'get']);
+    Route::get('/blogs/{id}/likes',    [LikeController::class, 'get']);
+    Route::post('/blogs/{id}/likes',   [LikeController::class, 'add']);
+    Route::delete('/blogs/{id}/likes', [LikeController::class, 'remove']);
 
     // User reads
     Route::get('/users',      [UserController::class, 'index']);
@@ -65,9 +67,6 @@ Route::middleware('jwt.auth')->group(function () {
     Route::post('/blogs/{id}/versions/{verId}/publish',     [BlogVersionController::class, 'publishVersion']);
     Route::post('/blogs/{id}/versions/{verId}/revert',      [BlogVersionController::class, 'revert']);
 
-    // Likes
-    Route::post('/blogs/{id}/likes',   [LikeController::class, 'add']);
-    Route::delete('/blogs/{id}/likes', [LikeController::class, 'remove']);
 
     // User writes
     Route::post('/users',        [UserController::class, 'store']);
