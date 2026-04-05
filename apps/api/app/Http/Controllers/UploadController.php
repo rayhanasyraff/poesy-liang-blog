@@ -65,9 +65,19 @@ class UploadController extends Controller
             ], 502);
         }
 
-        $fileData     = $prepareRes->json()[0];
-        $fileKey      = $fileData['key'];
-        $presignedUrl = $fileData['url'];
+        $json = $prepareRes->json();
+        // UploadThing may return a single object or an array of objects
+        $fileData = (isset($json[0]) && is_array($json[0])) ? $json[0] : $json;
+
+        $fileKey      = $fileData['key']  ?? ($fileData['fileKey']  ?? null);
+        $presignedUrl = $fileData['url']  ?? ($fileData['uploadUrl'] ?? null);
+
+        if (!$fileKey || !$presignedUrl) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Unexpected prepareUpload response: ' . $prepareRes->body(),
+            ], 502);
+        }
 
         // 4. Upload file content to UploadThing ingest URL
         $ingestRes = Http::withBody(
