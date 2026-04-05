@@ -1,4 +1,4 @@
-import { fetchBlogsCompatible } from "@/lib/api";
+import { fetchBlogsCompatible } from "@/services/blogService";
 
 export default async function sitemap() {
   const allBlogs = await fetchBlogsCompatible();

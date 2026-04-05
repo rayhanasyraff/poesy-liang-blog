@@ -31,11 +31,13 @@ export default function RootLayout({
             strategy="beforeInteractive"
           />
         )}
-        <Script
-          src="//unpkg.com/react-scan/dist/auto.global.js"
-          crossOrigin="anonymous"
-          strategy="beforeInteractive"
-        />
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-scan/dist/auto.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
         <Script src="https://www.instagram.com/embed.js" strategy="afterInteractive" />
       </head>
       <body

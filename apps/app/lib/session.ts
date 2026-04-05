@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import crypto from 'node:crypto';
 
-const SECRET = process.env.ADMIN_SESSION_SsECRET || 'poesy-admin-secret-change-me';
+const SECRET = process.env.ADMIN_SESSION_SECRET || 'poesy-admin-secret-change-me';
 const COOKIE_NAME = 'admin_session';
 const JWT_COOKIE_NAME = 'admin_jwt';
 const MAX_AGE = 60 * 60 * 24 * 7; // 7 days

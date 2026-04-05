@@ -14,7 +14,7 @@
         $secrets = require $cacheFile;
     } else {
         $url   = 'https://us.infisical.com/api/v4/secrets';
-        $token = 'st.b9ad622b-472f-44b1-a0fa-e783d37d1581.06eb56747bb43315f32372cab80602ec.2380274f1e64739fd1011fb929243dfe';
+        $token = getenv('INFISICAL_TOKEN');
 
         $ctx = stream_context_create([
             'http' => [
