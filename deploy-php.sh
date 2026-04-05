@@ -9,6 +9,10 @@ FTP_PASS="xv3DEXuHsHn969ducYT3"
 API_URL="http://poesyliang.net/api"
 DEPLOY_KEY="xv3DEXuHsHn969ducYT3"
 
+# ── 0. Temporarily allow vendor folder in git ────────────────────────────────
+echo "Unignoring vendor folder..."
+sed -i '/^\*\*\/vendor$/d' .gitignore
+
 # ── 1. Install PHP dependencies and regenerate autoloader ─────────────────────
 echo "Installing PHP dependencies..."
 GIT_CA_BUNDLE="/c/Program Files/Git/mingw64/etc/ssl/certs/ca-bundle.crt"
@@ -54,6 +58,10 @@ echo ""
 # ── 9. Clean up local vendor.zip ──────────────────────────────────────────────
 echo "Cleaning up..."
 rm -f "$ZIP_FILE"
+
+# ── 10. Restore vendor folder to .gitignore ───────────────────────────────────
+echo "Re-ignoring vendor folder..."
+echo '**/vendor' >> .gitignore
 
 echo ""
 echo "Deployment complete → $API_URL"
