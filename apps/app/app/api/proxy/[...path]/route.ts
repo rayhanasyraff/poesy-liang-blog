@@ -9,7 +9,12 @@ async function buildHeaders(method: string): Promise<Headers> {
   const headers = new Headers();
   if (WRITE_METHODS.has(method)) {
     const jwt = await getJwt();
-    if (jwt) headers.set('Authorization', `Bearer ${jwt}`);
+    if (jwt) {
+      headers.set('Authorization', `Bearer ${jwt}`);
+    } else {
+      const apiToken = process.env.API_TOKEN;
+      if (apiToken) headers.set('Authorization', `Bearer ${apiToken}`);
+    }
   } else {
     const apiToken = process.env.API_TOKEN;
     if (apiToken) headers.set('Authorization', `Bearer ${apiToken}`);
@@ -56,8 +61,10 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
     upstream = await fetchUpstream(targetUrl, fetchOptions);
   } catch (err) {
     console.error(`[proxy] fetch failed for ${targetUrl}:`, err);
-    const cause = err instanceof Error && err.cause instanceof Error ? err.cause.message : String(err);
-    return NextResponse.json({ success: false, error: 'API unreachable', cause }, { status: 502 });
+    const cause = err instanceof Error
+      ? (err.cause instanceof Error ? err.cause.message : String(err.cause ?? err.message))
+      : String(err);
+    return NextResponse.json({ success: false, error: 'API unreachable', cause, url: targetUrl }, { status: 502 });
   }
 
   const data = await upstream.arrayBuffer();

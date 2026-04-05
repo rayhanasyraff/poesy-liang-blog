@@ -67,10 +67,6 @@ async function startDevServer() {
 
   console.log(`🚀 Starting Next.js app on http://localhost:${availablePort}`);
 
-  // Use the NEXT_PUBLIC_API_URL environment variable exclusively (no auto-discovery)
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  console.log(`🔗 Using API URL from env: ${apiUrl}`);
-
   // Use node to run next directly, bypassing npm/npx and its override validation
   const nextBin = path.resolve(__dirname, '../../../node_modules/next/dist/bin/next');
   const nextProcess = spawn('node', [nextBin, 'dev', '-p', availablePort.toString()], {
@@ -79,7 +75,6 @@ async function startDevServer() {
     env: {
       ...process.env,
       PORT: availablePort.toString(), // Ensure PORT env var matches
-      NEXT_PUBLIC_API_URL: apiUrl,
     },
   });
 
